@@ -1,702 +1,623 @@
 package com.gl.Conferences_management.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
-import com.gl.Conferences_management.entity.*;
-import com.gl.Conferences_management.repository.*;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/fetch")
 public class FetchController {
 
     @Autowired
-    private AbstractsRepository abstractsRepository;
-
-    @Autowired
-    private AbstractSubmissionRepository abstractSubmissionRepository;
-
-    @Autowired
-    private AcadBusinessRepository acadBusinessRepository;
-
-    @Autowired
-    private AdvisaryCommitteeRepository advisaryCommitteeRepository;
-
-    @Autowired
-    private AttendeesFromRepository attendeesFromRepository;
-
-    @Autowired
-    private BannersRepository bannersRepository;
-
-    @Autowired
-    private BrochureRepository brochureRepository;
-
-    @Autowired
-    private CallforabstractsRepository callforabstractsRepository;
-
-    @Autowired
-    private CfaCategoriesRepository cfaCategoriesRepository;
-
-    @Autowired
-    private CfaSubCategoriesRepository cfaSubCategoriesRepository;
-
-    @Autowired
-    private CityAttractionsRepository cityAttractionsRepository;
-
-    @Autowired
-    private CityguideRepository cityguideRepository;
-
-    @Autowired
-    private CityGuideImagesRepository cityGuideImagesRepository;
-
-    @Autowired
-    private CommitteeRepository committeeRepository;
-
-    @Autowired
-    private CommitteeProgramRepository committeeProgramRepository;
-
-    @Autowired
-    private ConfRepository confRepository;
-
-    @Autowired
-    private ConferencesRepository conferencesRepository;
-
-    @Autowired
-    private ConfKeynoteRepository confKeynoteRepository;
-
-    @Autowired
-    private ContactUsRepository contactUsRepository;
-
-    @Autowired
-    private DailyTasksRepository dailyTasksRepository;
-
-    @Autowired
-    private DeadlinesRepository deadlinesRepository;
-
-    @Autowired
-    private EditConferenceRepository editConferenceRepository;
-
-    @Autowired
-    private EditSymposiaRepository editSymposiaRepository;
-
-    @Autowired
-    private FeaturedSpeakersRepository featuredSpeakersRepository;
-
-    @Autowired
-    private GalleryRepository galleryRepository;
-
-    @Autowired
-    private HomeInfoRepository homeInfoRepository;
-
-    @Autowired
-    private HomepageRepository homepageRepository;
-
-    @Autowired
-    private HotelExpensesRepository hotelExpensesRepository;
-
-    @Autowired
-    private ImportantDetailsRepository importantDetailsRepository;
-
-    @Autowired
-    private IndianRegReqRepository indianRegReqRepository;
-
-    @Autowired
-    private InvitecolleagueRepository invitecolleagueRepository;
-
-    @Autowired
-    private InvitedSpeakersRepository invitedSpeakersRepository;
-
-    @Autowired
-    private KeynotesRepository keynotesRepository;
-
-    @Autowired
-    private KeynoteSpeakersRepository keynoteSpeakersRepository;
-
-    @Autowired
-    private LikesRepository likesRepository;
-
-    @Autowired
-    private LoginDetailsRepository loginDetailsRepository;
-
-    @Autowired
-    private LoginInfoRepository loginInfoRepository;
-
-    @Autowired
-    private MailSendingRepository mailSendingRepository;
-
-    @Autowired
-    private MediaPartnersRepository mediaPartnersRepository;
-
-    @Autowired
-    private MembersRepository membersRepository;
-
-    @Autowired
-    private MenuRepository menuRepository;
-
-    @Autowired
-    private MessagesRepository messagesRepository;
-
-    @Autowired
-    private MetaTagsRepository metaTagsRepository;
-
-    @Autowired
-    private MorespeakersRepository morespeakersRepository;
-
-    @Autowired
-    private NotificationsRepository notificationsRepository;
-
-    @Autowired
-    private PagesRepository pagesRepository;
-
-    @Autowired
-    private PastContentRepository pastContentRepository;
-
-    @Autowired
-    private PastSpeakersRepository pastSpeakersRepository;
-
-    @Autowired
-    private PdfEnqueryRepository pdfEnqueryRepository;
-
-    @Autowired
-    private PdfsRepository pdfsRepository;
-
-    @Autowired
-    private PendingWorksRepository pendingWorksRepository;
-
-    @Autowired
-    private PlenarySpeakersRepository plenarySpeakersRepository;
-
-    @Autowired
-    private PositivesRepository positivesRepository;
-
-    @Autowired
-    private PostersRepository postersRepository;
-
-    @Autowired
-    private PreconfRepository preconfRepository;
-
-    @Autowired
-    private RefundsRepository refundsRepository;
-
-    @Autowired
-    private RegistrationRepository registrationRepository;
-
-    @Autowired
-    private RegistrationsRepository registrationsRepository;
-
-    @Autowired
-    private RegistrationPricesRepository registrationPricesRepository;
-
-    @Autowired
-    private RelatedConferencesRepository relatedConferencesRepository;
-
-    @Autowired
-    private RenewedSpeakersRepository renewedSpeakersRepository;
-
-    @Autowired
-    private RenownedspeakersRepository renownedspeakersRepository;
-
-    @Autowired
-    private ScientificProgrammeRepository scientificProgrammeRepository;
-
-    @Autowired
-    private SenderSettingsRepository senderSettingsRepository;
-
-    @Autowired
-    private SendingDomainsRepository sendingDomainsRepository;
-
-    @Autowired
-    private SpeakerInfoRepository speakerInfoRepository;
-
-    @Autowired
-    private SponsorCatalogueRepository sponsorCatalogueRepository;
-
-    @Autowired
-    private SponsorsRepository sponsorsRepository;
-
-    @Autowired
-    private StatusReportRepository statusReportRepository;
-
-    @Autowired
-    private SubscribesRepository subscribesRepository;
-
-    @Autowired
-    private SubTracksRepository subTracksRepository;
-
-    @Autowired
-    private SuggestSpeakerRepository suggestSpeakerRepository;
-
-    @Autowired
-    private TimeManagementRepository timeManagementRepository;
-
-    @Autowired
-    private TopicsRepository topicsRepository;
-
-    @Autowired
-    private TrackDescriptionRepository trackDescriptionRepository;
-
-    @Autowired
-    private TracksRepository tracksRepository;
-
-    @Autowired
-    private TrackSpeakersRepository trackSpeakersRepository;
-
-    @Autowired
-    private TzMembersRepository tzMembersRepository;
-
-    @Autowired
-    private UnsubscribesRepository unsubscribesRepository;
-
-    @Autowired
-    private VenueAccommodationRepository venueAccommodationRepository;
-
-    @Autowired
-    private VenueHelpdeskRepository venueHelpdeskRepository;
-
-    @Autowired
-    private VenueHospitalityRepository venueHospitalityRepository;
-
-    @Autowired
-    private WorkshopRepository workshopRepository;
-
-    @Autowired
-    private WorkSheetRepository workSheetRepository;
-
-    @Autowired
-    private WorkUpdateRepository workUpdateRepository;
-
-    @Autowired
-    private YrfRepository yrfRepository;
+    private JdbcTemplate jdbcTemplate;
+
+    private String camelToSnake(String str) {
+        return str.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+    }
 
     @GetMapping("/abstracts")
-    public List<Abstracts> getAbstracts() {
-        return abstractsRepository.findAll();
+    public List<Map<String, Object>> getAbstracts() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/abstract-submissions")
-    public List<AbstractSubmission> getAbstractSubmissions() {
-        return abstractSubmissionRepository.findAll();
+    public List<Map<String, Object>> getAbstractSubmissions() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/acad-business")
-    public List<AcadBusiness> getAcadBusiness() {
-        return acadBusinessRepository.findAll();
+    public List<Map<String, Object>> getAcadBusiness() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/advisary-committee")
-    public List<AdvisaryCommittee> getAdvisaryCommittee() {
-        return advisaryCommitteeRepository.findAll();
+    public List<Map<String, Object>> getAdvisaryCommittee() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/attendees-from")
-    public List<AttendeesFrom> getAttendeesFrom() {
-        return attendeesFromRepository.findAll();
+    public List<Map<String, Object>> getAttendeesFrom() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/banners")
-    public List<Banners> getBanners() {
-        return bannersRepository.findAll();
+    public List<Map<String, Object>> getBanners() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/brochure")
-    public List<Brochure> getBrochure() {
-        return brochureRepository.findAll();
+    public List<Map<String, Object>> getBrochure() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/call-for-abstracts")
-    public List<Callforabstracts> getCallforabstracts() {
-        return callforabstractsRepository.findAll();
+    public List<Map<String, Object>> getCallforabstracts() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/cfa-categories")
-    public List<CfaCategories> getCfaCategories() {
-        return cfaCategoriesRepository.findAll();
+    public List<Map<String, Object>> getCfaCategories() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/cfa-sub-categories")
-    public List<CfaSubCategories> getCfaSubCategories() {
-        return cfaSubCategoriesRepository.findAll();
+    public List<Map<String, Object>> getCfaSubCategories() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/city-attractions")
-    public List<CityAttractions> getCityAttractions() {
-        return cityAttractionsRepository.findAll();
+    public List<Map<String, Object>> getCityAttractions() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/city-guide")
-    public List<Cityguide> getCityguide() {
-        return cityguideRepository.findAll();
+    public List<Map<String, Object>> getCityguide() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/city-guide-images")
-    public List<CityGuideImages> getCityGuideImages() {
-        return cityGuideImagesRepository.findAll();
+    public List<Map<String, Object>> getCityGuideImages() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/committee")
-    public List<Committee> getCommittee() {
-        return committeeRepository.findAll();
+    public List<Map<String, Object>> getCommittee() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/committee-program")
-    public List<CommitteeProgram> getCommitteeProgram() {
-        return committeeProgramRepository.findAll();
+    public List<Map<String, Object>> getCommitteeProgram() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/conf")
-    public List<Conf> getConf() {
-        return confRepository.findAll();
+    public List<Map<String, Object>> getConf() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/conferences")
-    public List<Conferences> getConferences() {
-        return conferencesRepository.findAll();
+    public List<Map<String, Object>> getConferences() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/conf-keynote")
-    public List<ConfKeynote> getConfKeynote() {
-        return confKeynoteRepository.findAll();
+    public List<Map<String, Object>> getConfKeynote() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/contact-us")
-    public List<ContactUs> getContactUs() {
-        return contactUsRepository.findAll();
+    public List<Map<String, Object>> getContactUs() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/daily-tasks")
-    public List<DailyTasks> getDailyTasks() {
-        return dailyTasksRepository.findAll();
+    public List<Map<String, Object>> getDailyTasks() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/deadlines")
-    public List<Deadlines> getDeadlines() {
-        return deadlinesRepository.findAll();
+    public List<Map<String, Object>> getDeadlines() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/edit-conference")
-    public List<EditConference> getEditConference() {
-        return editConferenceRepository.findAll();
+    public List<Map<String, Object>> getEditConference() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/edit-symposia")
-    public List<EditSymposia> getEditSymposia() {
-        return editSymposiaRepository.findAll();
+    public List<Map<String, Object>> getEditSymposia() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/featured-speakers")
-    public List<FeaturedSpeakers> getFeaturedSpeakers() {
-        return featuredSpeakersRepository.findAll();
+    public List<Map<String, Object>> getFeaturedSpeakers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/gallery")
-    public List<Gallery> getGallery() {
-        return galleryRepository.findAll();
+    public List<Map<String, Object>> getGallery() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/home-info")
-    public List<HomeInfo> getHomeInfo() {
-        return homeInfoRepository.findAll();
+    public List<Map<String, Object>> getHomeInfo() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/homepage")
-    public List<Homepage> getHomepage() {
-        return homepageRepository.findAll();
+    public List<Map<String, Object>> getHomepage() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/hotel-expenses")
-    public List<HotelExpenses> getHotelExpenses() {
-        return hotelExpensesRepository.findAll();
+    public List<Map<String, Object>> getHotelExpenses() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/important-details")
-    public List<ImportantDetails> getImportantDetails() {
-        return importantDetailsRepository.findAll();
+    public List<Map<String, Object>> getImportantDetails() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/indian-reg-req")
-    public List<IndianRegReq> getIndianRegReq() {
-        return indianRegReqRepository.findAll();
+    public List<Map<String, Object>> getIndianRegReq() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/invite-colleague")
-    public List<Invitecolleague> getInvitecolleague() {
-        return invitecolleagueRepository.findAll();
+    public List<Map<String, Object>> getInvitecolleague() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/invited-speakers")
-    public List<InvitedSpeakers> getInvitedSpeakers() {
-        return invitedSpeakersRepository.findAll();
+    public List<Map<String, Object>> getInvitedSpeakers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/keynotes")
-    public List<Keynotes> getKeynotes() {
-        return keynotesRepository.findAll();
+    public List<Map<String, Object>> getKeynotes() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/keynote-speakers")
-    public List<KeynoteSpeakers> getKeynoteSpeakers() {
-        return keynoteSpeakersRepository.findAll();
+    public List<Map<String, Object>> getKeynoteSpeakers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/likes")
-    public List<Likes> getLikes() {
-        return likesRepository.findAll();
+    public List<Map<String, Object>> getLikes() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/login-details")
-    public List<LoginDetails> getLoginDetails() {
-        return loginDetailsRepository.findAll();
+    public List<Map<String, Object>> getLoginDetails() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/login-info")
-    public List<LoginInfo> getLoginInfo() {
-        return loginInfoRepository.findAll();
+    public List<Map<String, Object>> getLoginInfo() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/mail-sending")
-    public List<MailSending> getMailSending() {
-        return mailSendingRepository.findAll();
+    public List<Map<String, Object>> getMailSending() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/media-partners")
-    public List<MediaPartners> getMediaPartners() {
-        return mediaPartnersRepository.findAll();
+    public List<Map<String, Object>> getMediaPartners() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/members")
-    public List<Members> getMembers() {
-        return membersRepository.findAll();
+    public List<Map<String, Object>> getMembers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/menu")
-    public List<Menu> getMenu() {
-        return menuRepository.findAll();
+    public List<Map<String, Object>> getMenu() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/messages")
-    public List<Messages> getMessages() {
-        return messagesRepository.findAll();
+    public List<Map<String, Object>> getMessages() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/meta-tags")
-    public List<MetaTags> getMetaTags() {
-        return metaTagsRepository.findAll();
+    public List<Map<String, Object>> getMetaTags() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/more-speakers")
-    public List<Morespeakers> getMorespeakers() {
-        return morespeakersRepository.findAll();
+    public List<Map<String, Object>> getMorespeakers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/notifications")
-    public List<Notifications> getNotifications() {
-        return notificationsRepository.findAll();
+    public List<Map<String, Object>> getNotifications() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/pages")
-    public List<Pages> getPages() {
-        return pagesRepository.findAll();
+    public List<Map<String, Object>> getPages() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/past-content")
-    public List<PastContent> getPastContent() {
-        return pastContentRepository.findAll();
+    public List<Map<String, Object>> getPastContent() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/past-speakers")
-    public List<PastSpeakers> getPastSpeakers() {
-        return pastSpeakersRepository.findAll();
+    public List<Map<String, Object>> getPastSpeakers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/pdf-enquery")
-    public List<PdfEnquery> getPdfEnquery() {
-        return pdfEnqueryRepository.findAll();
+    public List<Map<String, Object>> getPdfEnquery() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/pdfs")
-    public List<Pdfs> getPdfs() {
-        return pdfsRepository.findAll();
+    public List<Map<String, Object>> getPdfs() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/pending-works")
-    public List<PendingWorks> getPendingWorks() {
-        return pendingWorksRepository.findAll();
+    public List<Map<String, Object>> getPendingWorks() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/plenary-speakers")
-    public List<PlenarySpeakers> getPlenarySpeakers() {
-        return plenarySpeakersRepository.findAll();
+    public List<Map<String, Object>> getPlenarySpeakers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/positives")
-    public List<Positives> getPositives() {
-        return positivesRepository.findAll();
+    public List<Map<String, Object>> getPositives() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/posters")
-    public List<Posters> getPosters() {
-        return postersRepository.findAll();
+    public List<Map<String, Object>> getPosters() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/preconf")
-    public List<Preconf> getPreconf() {
-        return preconfRepository.findAll();
+    public List<Map<String, Object>> getPreconf() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/refunds")
-    public List<Refunds> getRefunds() {
-        return refundsRepository.findAll();
+    public List<Map<String, Object>> getRefunds() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/registration")
-    public List<Registration> getRegistration() {
-        return registrationRepository.findAll();
+    public List<Map<String, Object>> getRegistration() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/registrations")
-    public List<Registrations> getRegistrations() {
-        return registrationsRepository.findAll();
+    public List<Map<String, Object>> getRegistrations() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/registration-prices")
-    public List<RegistrationPrices> getRegistrationPrices() {
-        return registrationPricesRepository.findAll();
+    public List<Map<String, Object>> getRegistrationPrices() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/related-conferences")
-    public List<RelatedConferences> getRelatedConferences() {
-        return relatedConferencesRepository.findAll();
+    public List<Map<String, Object>> getRelatedConferences() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/renewed-speakers")
-    public List<RenewedSpeakers> getRenewedSpeakers() {
-        return renewedSpeakersRepository.findAll();
+    public List<Map<String, Object>> getRenewedSpeakers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/renowned-speakers")
-    public List<Renownedspeakers> getRenownedspeakers() {
-        return renownedspeakersRepository.findAll();
+    public List<Map<String, Object>> getRenownedspeakers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/scientific-programme")
-    public List<ScientificProgramme> getScientificProgramme() {
-        return scientificProgrammeRepository.findAll();
+    public List<Map<String, Object>> getScientificProgramme() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/sender-settings")
-    public List<SenderSettings> getSenderSettings() {
-        return senderSettingsRepository.findAll();
+    public List<Map<String, Object>> getSenderSettings() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/sending-domains")
-    public List<SendingDomains> getSendingDomains() {
-        return sendingDomainsRepository.findAll();
+    public List<Map<String, Object>> getSendingDomains() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/speaker-info")
-    public List<SpeakerInfo> getSpeakerInfo() {
-        return speakerInfoRepository.findAll();
+    public List<Map<String, Object>> getSpeakerInfo() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/sponsor-catalogue")
-    public List<SponsorCatalogue> getSponsorCatalogue() {
-        return sponsorCatalogueRepository.findAll();
+    public List<Map<String, Object>> getSponsorCatalogue() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/sponsors")
-    public List<Sponsors> getSponsors() {
-        return sponsorsRepository.findAll();
+    public List<Map<String, Object>> getSponsors() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/status-report")
-    public List<StatusReport> getStatusReport() {
-        return statusReportRepository.findAll();
+    public List<Map<String, Object>> getStatusReport() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/subscribes")
-    public List<Subscribes> getSubscribes() {
-        return subscribesRepository.findAll();
+    public List<Map<String, Object>> getSubscribes() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/sub-tracks")
-    public List<SubTracks> getSubTracks() {
-        return subTracksRepository.findAll();
+    public List<Map<String, Object>> getSubTracks() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/suggest-speaker")
-    public List<SuggestSpeaker> getSuggestSpeaker() {
-        return suggestSpeakerRepository.findAll();
+    public List<Map<String, Object>> getSuggestSpeaker() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/time-management")
-    public List<TimeManagement> getTimeManagement() {
-        return timeManagementRepository.findAll();
+    public List<Map<String, Object>> getTimeManagement() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/topics")
-    public List<Topics> getTopics() {
-        return topicsRepository.findAll();
+    public List<Map<String, Object>> getTopics() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/track-description")
-    public List<TrackDescription> getTrackDescription() {
-        return trackDescriptionRepository.findAll();
+    public List<Map<String, Object>> getTrackDescription() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/tracks")
-    public List<Tracks> getTracks() {
-        return tracksRepository.findAll();
+    public List<Map<String, Object>> getTracks() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/track-speakers")
-    public List<TrackSpeakers> getTrackSpeakers() {
-        return trackSpeakersRepository.findAll();
+    public List<Map<String, Object>> getTrackSpeakers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/tz-members")
-    public List<TzMembers> getTzMembers() {
-        return tzMembersRepository.findAll();
+    public List<Map<String, Object>> getTzMembers() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/unsubscribes")
-    public List<Unsubscribes> getUnsubscribes() {
-        return unsubscribesRepository.findAll();
+    public List<Map<String, Object>> getUnsubscribes() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/venue-accommodation")
-    public List<VenueAccommodation> getVenueAccommodation() {
-        return venueAccommodationRepository.findAll();
+    public List<Map<String, Object>> getVenueAccommodation() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/venue-helpdesk")
-    public List<VenueHelpdesk> getVenueHelpdesk() {
-        return venueHelpdeskRepository.findAll();
+    public List<Map<String, Object>> getVenueHelpdesk() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/venue-hospitality")
-    public List<VenueHospitality> getVenueHospitality() {
-        return venueHospitalityRepository.findAll();
+    public List<Map<String, Object>> getVenueHospitality() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/workshop")
-    public List<Workshop> getWorkshop() {
-        return workshopRepository.findAll();
+    public List<Map<String, Object>> getWorkshop() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/work-sheet")
-    public List<WorkSheet> getWorkSheet() {
-        return workSheetRepository.findAll();
+    public List<Map<String, Object>> getWorkSheet() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/work-update")
-    public List<WorkUpdate> getWorkUpdate() {
-        return workUpdateRepository.findAll();
+    public List<Map<String, Object>> getWorkUpdate() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
     @GetMapping("/yrf")
-    public List<Yrf> getYrf() {
-        return yrfRepository.findAll();
+    public List<Map<String, Object>> getYrf() {
+        String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
+        String tableName = camelToSnake(methodName.substring(3));
+        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 }
