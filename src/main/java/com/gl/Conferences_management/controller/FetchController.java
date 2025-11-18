@@ -326,6 +326,12 @@ public class FetchController {
         return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
     }
 
+    @GetMapping("/members/user/{user}")
+    public List<Map<String, Object>> getMembersByUser(@PathVariable("user") Integer user) {
+        String sql = "SELECT * FROM members WHERE user = ?";
+        return jdbcTemplate.queryForList(sql, user);
+    }
+
     @GetMapping("/menu")
     public List<Map<String, Object>> getMenu() {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
