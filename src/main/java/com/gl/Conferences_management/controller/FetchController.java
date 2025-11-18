@@ -231,6 +231,18 @@ public class FetchController {
         return jdbcTemplate.queryForList(sql, domain);
     }
 
+    @GetMapping("/important-details/shortname/{shortname}")
+    public List<Map<String, Object>> getImportantDetailsByShortName(@PathVariable("shortname") String shortname) {
+        String sql = "SELECT * FROM important_details WHERE ShortName = ?";
+        return jdbcTemplate.queryForList(sql, shortname);
+    }
+
+    @GetMapping("/important-details/id/{id}")
+    public List<Map<String, Object>> getImportantDetailsById(@PathVariable("id") int id) {
+        String sql = "SELECT * FROM important_details WHERE id = ?";
+        return jdbcTemplate.queryForList(sql, id);
+    }
+
     @GetMapping("/indian-reg-req")
     public List<Map<String, Object>> getIndianRegReq() {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
@@ -278,6 +290,12 @@ public class FetchController {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
         String tableName = camelToSnake(methodName.substring(3));
         return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
+    }
+
+    @GetMapping("/login-details/username/{username}")
+    public List<Map<String, Object>> getLoginDetailsByUsername(@PathVariable("username") String username) {
+        String sql = "SELECT * FROM login_details WHERE username = ?";
+        return jdbcTemplate.queryForList(sql, username);
     }
 
     @GetMapping("/login-info")

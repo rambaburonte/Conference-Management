@@ -3,7 +3,7 @@ package com.gl.Conferences_management.dto;
 import lombok.Data;
 
 @Data
-public class RegistrationRequest {
+public class PaymentRequest {
     private String title;
     private String name;
     private String email;
@@ -18,4 +18,6 @@ public class RegistrationRequest {
     private String conf;
     private String category;
     private String description;
+    private String successUrl;
+    private String cancelUrl;
 }

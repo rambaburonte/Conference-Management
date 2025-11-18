@@ -1,6 +1,7 @@
 package com.gl.Conferences_management.controller;
 
-import com.gl.Conferences_management.dto.RegistrationRequest;
+import com.gl.Conferences_management.dto.AbstractSubmissionRequest;
+import com.gl.Conferences_management.dto.AbstractSubmissionResponse;
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +24,7 @@ import java.sql.Statement;
 import java.time.LocalDate;
 
 
+@RestController
 @RequestMapping("/api/abstract")
 public class Abstract {
 
@@ -45,21 +47,9 @@ public class Abstract {
     private String ftpUploadPath;
 
     @PostMapping("/submit")
-    public ResponseEntity<?> submitAbstract(
+    public ResponseEntity<AbstractSubmissionResponse> submitAbstract(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("user") String user,
-            @RequestParam("title") String title,
-            @RequestParam("fname") String fname,
-            @RequestParam("country") String country,
-            @RequestParam(value = "org", required = false) String org,
-            @RequestParam("email") String email,
-            @RequestParam("phno") String phno,
-            @RequestParam(value = "category", required = false) String category,
-            @RequestParam(value = "sent_from", required = false) String sentFrom,
-            @RequestParam(value = "track_name", required = false) String trackName,
-            @RequestParam(value = "address", required = false) String address,
-            @RequestParam(value = "presentation_title", required = false) String presentationTitle,
-            @RequestParam(value = "entity", required = false) String entity
+            @ModelAttribute AbstractSubmissionRequest request
     ) {
         FTPClient ftpClient = new FTPClient();
         try {
@@ -70,21 +60,21 @@ public class Abstract {
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS);
-                ps.setString(1, user);
-                ps.setString(2, title);
-                ps.setString(3, fname);
-                ps.setString(4, country);
-                ps.setString(5, org);
-                ps.setString(6, email);
-                ps.setString(7, phno);
-                ps.setString(8, category);
-                ps.setString(9, sentFrom);
-                ps.setString(10, trackName);
-                ps.setString(11, address);
+                ps.setString(1, request.getUser());
+                ps.setString(2, request.getTitle());
+                ps.setString(3, request.getFname());
+                ps.setString(4, request.getCountry());
+                ps.setString(5, request.getOrg());
+                ps.setString(6, request.getEmail());
+                ps.setString(7, request.getPhno());
+                ps.setString(8, request.getCategory());
+                ps.setString(9, request.getSentFrom());
+                ps.setString(10, request.getTrackName());
+                ps.setString(11, request.getAddress());
                 ps.setDate(12, Date.valueOf(LocalDate.now()));
                 ps.setString(13, ipAddress);
-                ps.setString(14, presentationTitle);
-                ps.setString(15, entity);
+                ps.setString(14, request.getPresentationTitle());
+                ps.setString(15, request.getEntity());
                 return ps;
             }, keyHolder);
 
@@ -106,13 +96,13 @@ public class Abstract {
                 if (done) {
                     // Update attachment in database
                     jdbcTemplate.update("UPDATE abstract_submission SET attachment = ? WHERE id = ?", uniqueFileName, id);
-                    return ResponseEntity.ok("Abstract submitted successfully");
+                    return ResponseEntity.ok(new AbstractSubmissionResponse(id, "Abstract submitted successfully", "success", uniqueFileName));
                 } else {
-                    return ResponseEntity.status(500).body("File upload failed");
+                    return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, "File upload failed", "error", null));
                 }
             }
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("Error: " + e.getMessage());
+            return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, "Error: " + e.getMessage(), "error", null));
         } finally {
             try {
                 if (ftpClient.isConnected()) {
