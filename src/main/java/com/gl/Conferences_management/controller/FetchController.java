@@ -1,12 +1,14 @@
 package com.gl.Conferences_management.controller;
 
+import java.util.List;
+import java.util.Map;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/fetch")
@@ -220,6 +222,13 @@ public class FetchController {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
         String tableName = camelToSnake(methodName.substring(3));
         return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
+    }
+
+    // Get important details by domain (parameterized to avoid SQL injection)
+    @GetMapping("/important-details/domain/{domain}")
+    public List<Map<String, Object>> getImportantDetailsByDomain(@PathVariable("domain") String domain) {
+        String sql = "SELECT * FROM important_details WHERE domain = ?";
+        return jdbcTemplate.queryForList(sql, domain);
     }
 
     @GetMapping("/indian-reg-req")
