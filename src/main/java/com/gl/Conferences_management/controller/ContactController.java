@@ -1,0 +1,61 @@
+package com.gl.Conferences_management.controller;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.gl.Conferences_management.dto.ContactRequest;
+import com.gl.Conferences_management.dto.SubscribeRequest;
+import com.gl.Conferences_management.service.MailService;
+
+@RestController
+@RequestMapping("/api")
+public class ContactController {
+    
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    private MailService mailService;
+    
+    @PostMapping("/contact-us")
+    public ResponseEntity<String> createContact(@RequestBody ContactRequest request) {
+        try {
+            jdbcTemplate.update("INSERT INTO contact_us (name, email, subject, message, user) VALUES (?, ?, ?, ?, ?)",
+                request.getName(), request.getEmail(), request.getSubject(), request.getMessage(), request.getUser());
+            
+            // Send email
+            try {
+                String userEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, request.getUser());
+                if (userEmail != null) {
+                    mailService.sendEmail(userEmail, "Contact Us Confirmation", "Thank you for contacting us. We will get back to you soon.");
+                }
+            } catch (Exception e) {
+                // Log email error if needed
+            }
+            
+            return ResponseEntity.ok("Contact created successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error creating contact: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/subscribe")
+    public ResponseEntity<String> createSubscribe(@RequestBody SubscribeRequest request) {
+        try {
+            jdbcTemplate.update("INSERT INTO subscribes (email, status, category) VALUES (?, 1, ?)",
+                request.getEmail(), request.getCategory());
+            
+            // Send email
+            mailService.sendEmail(request.getEmail(), "Subscription Confirmation", "Thank you for subscribing to our updates.");
+            
+            return ResponseEntity.ok("Subscribed successfully");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Error subscribing: " + e.getMessage());
+        }
+    }
+}

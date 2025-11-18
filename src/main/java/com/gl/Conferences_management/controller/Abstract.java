@@ -25,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.gl.Conferences_management.dto.AbstractSubmissionRequest;
 import com.gl.Conferences_management.dto.AbstractSubmissionResponse;
+import com.gl.Conferences_management.service.MailService;
 
 
 @RestController
@@ -33,6 +34,9 @@ public class Abstract {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    private MailService mailService;
 
     @Value("${ftp.host}")
     private String ftpHost;
@@ -99,6 +103,17 @@ public class Abstract {
                 if (done) {
                     // Update attachment in database
                     jdbcTemplate.update("UPDATE abstract_submission SET attachment = ? WHERE id = ?", uniqueFileName, id);
+                    
+                    // Send email
+                    try {
+                        String userEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, request.getUser());
+                        if (userEmail != null) {
+                            mailService.sendEmail(userEmail, "Abstract Submission Confirmation", "Your abstract has been submitted successfully.");
+                        }
+                    } catch (Exception e) {
+                        // Log email error if needed
+                    }
+                    
                     return ResponseEntity.ok(new AbstractSubmissionResponse(id, "Abstract submitted successfully", "success", uniqueFileName));
                 } else {
                     return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, "File upload failed", "error", null));

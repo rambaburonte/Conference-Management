@@ -19,6 +19,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.PaymentIntent;
 import com.stripe.param.PaymentIntentCreateParams;
 import com.gl.Conferences_management.dto.PaymentRequest;
+import com.gl.Conferences_management.service.MailService;
 
 import com.paypal.api.payments.Amount;
 import com.paypal.api.payments.Payer;
@@ -35,6 +36,9 @@ public class PaymentController {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+    
+    @Autowired
+    private MailService mailService;
 
     @Value("${stripe.secret.key}")
     private String stripeSecretKey;
@@ -69,6 +73,20 @@ public class PaymentController {
             // Insert into DB
             jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stripe', 0, ?, null, ?)",
                     req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), intent.getId(), LocalDate.now());
+            
+            // Send email
+            try {
+                String toEmail = req.getEmail(); // default to submitted email
+                if (req.getUser() != null) {
+                    String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
+                    if (loginEmail != null) {
+                        toEmail = loginEmail;
+                    }
+                }
+                mailService.sendEmail(toEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
+            } catch (Exception e) {
+                // Log email error if needed
+            }
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("clientSecret", intent.getClientSecret());
@@ -127,6 +145,20 @@ public class PaymentController {
             // Insert into DB
             jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paypal', 0, ?, null, ?)",
                     req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), createdPayment.getId(), LocalDate.now());
+            
+            // Send email
+            try {
+                String toEmail = req.getEmail(); // default to submitted email
+                if (req.getUser() != null) {
+                    String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
+                    if (loginEmail != null) {
+                        toEmail = loginEmail;
+                    }
+                }
+                mailService.sendEmail(toEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
+            } catch (Exception e) {
+                // Log email error if needed
+            }
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("paymentId", createdPayment.getId());

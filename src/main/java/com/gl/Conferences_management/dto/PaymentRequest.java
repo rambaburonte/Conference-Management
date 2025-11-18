@@ -20,4 +20,5 @@ public class PaymentRequest {
     private String description;
     private String successUrl;
     private String cancelUrl;
+    private String user;
 }
