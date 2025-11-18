@@ -1,7 +1,13 @@
 package com.gl.Conferences_management.controller;
 
-import com.gl.Conferences_management.dto.AbstractSubmissionRequest;
-import com.gl.Conferences_management.dto.AbstractSubmissionResponse;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.InetAddress;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.time.LocalDate;
+
 import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,18 +16,15 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.InetAddress;
-import java.sql.Connection;
-import java.sql.Date;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.Statement;
-import java.time.LocalDate;
+import com.gl.Conferences_management.dto.AbstractSubmissionRequest;
+import com.gl.Conferences_management.dto.AbstractSubmissionResponse;
 
 
 @RestController
