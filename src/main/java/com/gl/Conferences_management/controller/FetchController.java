@@ -310,6 +310,15 @@ public class FetchController {
         return result;
     }
 
+    @GetMapping("/login-details/conference-url/{conferenceUrl}")
+    public List<Map<String, Object>> getLoginDetailsByConferenceUrl(@PathVariable("conferenceUrl") String conferenceUrl) {
+        log.info("Fetching login details for conference URL: {}", conferenceUrl);
+        String sql = "SELECT * FROM login_details WHERE conference_url = ? OR url = ?";
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, conferenceUrl, conferenceUrl);
+        log.info("Fetched {} login details for conference URL: {}", result.size(), conferenceUrl);
+        return result;
+    }
+
     @GetMapping("/login-info")
     public List<Map<String, Object>> getLoginInfo() {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
