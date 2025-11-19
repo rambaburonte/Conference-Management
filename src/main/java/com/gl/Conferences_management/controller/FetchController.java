@@ -340,8 +340,22 @@ public class FetchController {
 
     @GetMapping("/members/user/{user}")
     public List<Map<String, Object>> getMembersByUser(@PathVariable("user") String user) {
-        String sql = "SELECT * FROM members WHERE user = ?";
-        return jdbcTemplate.queryForList(sql, user);
+        log.info("Fetching members for username: {}", user);
+        try {
+            Integer userId = jdbcTemplate.queryForObject("SELECT id FROM login_details WHERE username = ?", Integer.class, user);
+            if (userId == null) {
+                log.warn("No login details found for username: {}", user);
+                return List.of();
+            }
+            log.debug("Found user id: {} for username: {}", userId, user);
+            String sql = "SELECT * FROM members WHERE user = ?";
+            List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, userId);
+            log.info("Fetched {} members for username: {}", result.size(), user);
+            return result;
+        } catch (Exception e) {
+            log.error("Error fetching members for username: {}", user, e);
+            return List.of();
+        }
     }
 
     @GetMapping("/menu")
