@@ -10,8 +10,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import lombok.extern.slf4j.Slf4j;
+
 @RestController
 @RequestMapping("/api/fetch")
+@Slf4j
 public class FetchController {
 
     @Autowired
@@ -23,9 +26,12 @@ public class FetchController {
 
     @GetMapping("/abstracts")
     public List<Map<String, Object>> getAbstracts() {
+        log.info("Fetching abstracts");
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
         String tableName = camelToSnake(methodName.substring(3));
-        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
+        List<Map<String, Object>> result = jdbcTemplate.queryForList("SELECT * FROM " + tableName);
+        log.info("Fetched {} abstracts", result.size());
+        return result;
     }
 
     @GetMapping("/abstract-submissions")
@@ -287,15 +293,21 @@ public class FetchController {
 
     @GetMapping("/login-details")
     public List<Map<String, Object>> getLoginDetails() {
+        log.info("Fetching login details");
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
         String tableName = camelToSnake(methodName.substring(3));
-        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
+        List<Map<String, Object>> result = jdbcTemplate.queryForList("SELECT * FROM " + tableName);
+        log.info("Fetched {} login details", result.size());
+        return result;
     }
 
     @GetMapping("/login-details/username/{username}")
     public List<Map<String, Object>> getLoginDetailsByUsername(@PathVariable("username") String username) {
+        log.info("Fetching login details for username: {}", username);
         String sql = "SELECT * FROM login_details WHERE username = ?";
-        return jdbcTemplate.queryForList(sql, username);
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, username);
+        log.info("Fetched {} login details for username: {}", result.size(), username);
+        return result;
     }
 
     @GetMapping("/login-info")

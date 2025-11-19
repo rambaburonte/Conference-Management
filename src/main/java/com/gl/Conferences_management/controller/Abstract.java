@@ -27,9 +27,11 @@ import com.gl.Conferences_management.dto.AbstractSubmissionRequest;
 import com.gl.Conferences_management.dto.AbstractSubmissionResponse;
 import com.gl.Conferences_management.service.MailService;
 
+import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/api/abstract")
+@Slf4j
 public class Abstract {
 
     @Autowired
@@ -58,9 +60,11 @@ public class Abstract {
             @RequestParam("file") MultipartFile file,
             @ModelAttribute AbstractSubmissionRequest request
     ) {
+        log.info("Received abstract submission request from user: {}, title: {}", request.getUser(), request.getTitle());
         FTPClient ftpClient = new FTPClient();
         try {
             String ipAddress = InetAddress.getLocalHost().getHostAddress();
+            log.debug("Client IP address: {}", ipAddress);
 
             // Insert into database without attachment to get ID
             String insertSql = "INSERT INTO abstract_submission (user, title, fname, country, org, email, phno, category, sent_from, track_name, address, date, ipaddress, presentation_title, entity) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
@@ -86,12 +90,15 @@ public class Abstract {
             }, keyHolder);
 
             Long id = keyHolder.getKey().longValue();
+            log.info("Abstract inserted into database with ID: {}", id);
 
             // Generate unique file name with ID
             String originalFileName = file.getOriginalFilename();
             String uniqueFileName = id + "_" + originalFileName;
+            log.debug("Generated unique filename: {}", uniqueFileName);
 
             // FTP upload
+            log.info("Connecting to FTP server: {}", ftpHost);
             ftpClient.connect(ftpHost, ftpPort);
             ftpClient.login(ftpUsername, ftpPassword);
             ftpClient.enterLocalPassiveMode();
@@ -101,34 +108,43 @@ public class Abstract {
             try (InputStream inputStream = file.getInputStream()) {
                 boolean done = ftpClient.storeFile(uniqueFileName, inputStream);
                 if (done) {
+                    log.info("File uploaded successfully to FTP: {}", uniqueFileName);
                     // Update attachment in database
                     jdbcTemplate.update("UPDATE abstract_submission SET attachment = ? WHERE id = ?", uniqueFileName, id);
+                    log.info("Attachment updated in database for ID: {}", id);
                     
                     // Send email
                     try {
                         String userEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, request.getUser());
                         if (userEmail != null) {
                             mailService.sendEmail(userEmail, "Abstract Submission Confirmation", "Your abstract has been submitted successfully.");
+                            log.info("Abstract submission confirmation email sent to: {}", userEmail);
+                        } else {
+                            log.warn("No email found in login_details for user: {}", request.getUser());
                         }
                     } catch (Exception e) {
-                        // Log email error if needed
+                        log.error("Error sending abstract submission email for user: {}", request.getUser(), e);
                     }
                     
+                    log.info("Abstract submission successful for ID: {}", id);
                     return ResponseEntity.ok(new AbstractSubmissionResponse(id, "Abstract submitted successfully", "success", uniqueFileName));
                 } else {
+                    log.error("FTP file upload failed for ID: {}", id);
                     return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, "File upload failed", "error", null));
                 }
             }
         } catch (Exception e) {
+            log.error("Error submitting abstract for user: {}", request.getUser(), e);
             return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, "Error: " + e.getMessage(), "error", null));
         } finally {
             try {
                 if (ftpClient.isConnected()) {
                     ftpClient.logout();
                     ftpClient.disconnect();
+                    log.debug("FTP connection closed");
                 }
             } catch (IOException ex) {
-                // Log or handle
+                log.error("Error closing FTP connection", ex);
             }
         }
     }

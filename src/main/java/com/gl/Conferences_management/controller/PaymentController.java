@@ -30,8 +30,11 @@ import com.paypal.api.payments.Transaction;
 import com.paypal.base.rest.APIContext;
 import com.paypal.base.rest.PayPalRESTException;
 
+import lombok.extern.slf4j.Slf4j;
+
 @RestController
 @RequestMapping("/api/payment")
+@Slf4j
 public class PaymentController {
 
     @Autowired
@@ -52,6 +55,7 @@ public class PaymentController {
     // Create Stripe PaymentIntent
     @PostMapping("/stripe/register")
     public ResponseEntity<?> createStripePaymentIntent(@RequestBody PaymentRequest req) {
+        log.info("Received Stripe payment request for user: {}, amount: {}, currency: {}", req.getUser(), req.getAmount(), req.getCurrency());
         try {
             Stripe.apiKey = stripeSecretKey;
 
@@ -60,6 +64,7 @@ public class PaymentController {
             String currency = req.getCurrency() == null ? "usd" : req.getCurrency().toLowerCase();
             String successUrl = req.getSuccessUrl() == null ? "/paymentsuccess" : req.getSuccessUrl();
             String cancelUrl = req.getCancelUrl() == null ? "/paymentcancel" : req.getCancelUrl();
+            log.debug("Stripe payment details - amountCents: {}, currency: {}", amountCents, currency);
 
             PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
                     .setAmount(amountCents)
@@ -69,10 +74,12 @@ public class PaymentController {
                     .build();
 
             PaymentIntent intent = PaymentIntent.create(params);
+            log.info("Stripe PaymentIntent created with ID: {}", intent.getId());
 
             // Insert into DB
             jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stripe', 0, ?, null, ?)",
                     req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), intent.getId(), LocalDate.now());
+            log.info("Registration inserted into database with token: {}", intent.getId());
             
             // Send email
             try {
@@ -81,11 +88,15 @@ public class PaymentController {
                     String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
                     if (loginEmail != null) {
                         toEmail = loginEmail;
+                        log.info("Using login email for Stripe registration: {}", loginEmail);
+                    } else {
+                        log.warn("No login email found for user: {}, using submitted email: {}", req.getUser(), req.getEmail());
                     }
                 }
                 mailService.sendEmail(toEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
+                log.info("Stripe registration confirmation email sent to: {}", toEmail);
             } catch (Exception e) {
-                // Log email error if needed
+                log.error("Error sending Stripe registration email for user: {}", req.getUser(), e);
             }
 
             Map<String, Object> resp = new HashMap<>();
@@ -94,9 +105,11 @@ public class PaymentController {
             resp.put("status", intent.getStatus());
             resp.put("successUrl", successUrl);
             resp.put("cancelUrl", cancelUrl);
+            log.info("Stripe payment intent response prepared for ID: {}", intent.getId());
             return ResponseEntity.ok(resp);
 
         } catch (StripeException | NumberFormatException e) {
+            log.error("Error creating Stripe payment intent for user: {}", req.getUser(), e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
@@ -106,10 +119,12 @@ public class PaymentController {
     // Create PayPal payment (redirect flow) - returns approval URL
     @PostMapping("/paypal/register")
     public ResponseEntity<?> createPaypalPayment(@RequestBody PaymentRequest req) {
+        log.info("Received PayPal payment request for user: {}, amount: {}, currency: {}", req.getUser(), req.getAmount(), req.getCurrency());
         String total = String.format("%.2f", req.getAmount()); // PayPal expects string format like "10.00"
         String currency = req.getCurrency() == null ? "USD" : req.getCurrency();
         String successUrl = req.getSuccessUrl() == null ? "/paymentsuccess" : req.getSuccessUrl();
         String cancelUrl = req.getCancelUrl() == null ? "/paymentcancel" : req.getCancelUrl();
+        log.debug("PayPal payment details - total: {}, currency: {}", total, currency);
 
         APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, "sandbox");
 
@@ -141,10 +156,12 @@ public class PaymentController {
                     .findFirst()
                     .map(link -> link.getHref())
                     .orElse(null);
+            log.info("PayPal payment created with ID: {}", createdPayment.getId());
 
             // Insert into DB
             jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paypal', 0, ?, null, ?)",
                     req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), createdPayment.getId(), LocalDate.now());
+            log.info("PayPal registration inserted into database with token: {}", createdPayment.getId());
             
             // Send email
             try {
@@ -153,11 +170,15 @@ public class PaymentController {
                     String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
                     if (loginEmail != null) {
                         toEmail = loginEmail;
+                        log.info("Using login email for PayPal registration: {}", loginEmail);
+                    } else {
+                        log.warn("No login email found for user: {}, using submitted email: {}", req.getUser(), req.getEmail());
                     }
                 }
                 mailService.sendEmail(toEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
+                log.info("PayPal registration confirmation email sent to: {}", toEmail);
             } catch (Exception e) {
-                // Log email error if needed
+                log.error("Error sending PayPal registration email for user: {}", req.getUser(), e);
             }
 
             Map<String, Object> resp = new HashMap<>();
@@ -165,8 +186,10 @@ public class PaymentController {
             resp.put("approvalUrl", approvalUrl);
             resp.put("successUrl", successUrl);
             resp.put("cancelUrl", cancelUrl);
+            log.info("PayPal payment response prepared for ID: {}", createdPayment.getId());
             return ResponseEntity.ok(resp);
         } catch (PayPalRESTException e) {
+            log.error("Error creating PayPal payment for user: {}", req.getUser(), e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
@@ -179,23 +202,28 @@ public class PaymentController {
     @PostMapping("/stripe/success")
     public ResponseEntity<?> confirmStripePayment(@RequestBody Map<String, String> body) {
         String token = body.get("token");
-      
+        log.info("Received Stripe payment confirmation for token: {}", token);
 
         if (token == null) {
+            log.warn("Token is required for Stripe payment confirmation");
             return ResponseEntity.badRequest().body(Map.of("error", "token is required"));
         }
 
         try {
             PaymentIntent intent = PaymentIntent.retrieve(token);
-           String t_id  =   intent.getId();
+            log.debug("Retrieved Stripe PaymentIntent: {}, status: {}", intent.getId(), intent.getStatus());
+            String t_id = intent.getId();
             if ("succeeded".equals(intent.getStatus())) {
                 jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'stripe'",
                         t_id, token);
+                log.info("Stripe payment confirmed and registration updated for token: {}", token);
                 return ResponseEntity.ok(Map.of("status", "success"));
             } else {
+                log.warn("Stripe payment not succeeded for token: {}, status: {}", token, intent.getStatus());
                 return ResponseEntity.badRequest().body(Map.of("error", "Payment not succeeded"));
             }
         } catch (StripeException e) {
+            log.error("Error confirming Stripe payment for token: {}", token, e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
@@ -206,23 +234,29 @@ public class PaymentController {
     @PostMapping("/paypal/success")
     public ResponseEntity<?> confirmPaypalPayment(@RequestBody Map<String, String> body) {
         String token = body.get("token");
+        log.info("Received PayPal payment confirmation for token: {}", token);
 
         if (token == null) {
+            log.warn("Token is required for PayPal payment confirmation");
             return ResponseEntity.badRequest().body(Map.of("error", "token is required"));
         }
 
         try {
             APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, "sandbox");
             Payment payment = Payment.get(apiContext, token);
+            log.debug("Retrieved PayPal payment: {}, state: {}", payment.getId(), payment.getState());
             String t_id = payment.getId();
             if ("approved".equals(payment.getState())) {
                 jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'paypal'",
                         t_id, token);
+                log.info("PayPal payment confirmed and registration updated for token: {}", token);
                 return ResponseEntity.ok(Map.of("status", "success"));
             } else {
+                log.warn("PayPal payment not approved for token: {}, state: {}", token, payment.getState());
                 return ResponseEntity.badRequest().body(Map.of("error", "Payment not approved"));
             }
         } catch (PayPalRESTException e) {
+            log.error("Error confirming PayPal payment for token: {}", token, e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
