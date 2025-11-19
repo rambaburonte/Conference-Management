@@ -350,6 +350,13 @@ public class FetchController {
             log.debug("Found user id: {} for username: {}", userId, user);
             String sql = "SELECT * FROM members WHERE user = ?";
             List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, userId);
+            // Add base URL to photo field
+            for (Map<String, Object> member : result) {
+                Object photo = member.get("photo");
+                if (photo != null && !photo.toString().isEmpty()) {
+                    member.put("photo", "https://ccai2026.com/cms/photos/" + photo.toString());
+                }
+            }
             log.info("Fetched {} members for username: {}", result.size(), user);
             return result;
         } catch (Exception e) {

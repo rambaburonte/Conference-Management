@@ -52,7 +52,7 @@ public class Abstract {
     @Value("${ftp.password}")
     private String ftpPassword;
 
-    @Value("${ftp.upload.path:/uploads}")
+    @Value("${ftp.upload.path:/cms/pdfs}")
     private String ftpUploadPath;
 
     @PostMapping("/submit")
