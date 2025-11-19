@@ -339,7 +339,7 @@ public class FetchController {
     }
 
     @GetMapping("/members/user/{user}")
-    public List<Map<String, Object>> getMembersByUser(@PathVariable("user") Integer user) {
+    public List<Map<String, Object>> getMembersByUser(@PathVariable("user") String user) {
         String sql = "SELECT * FROM members WHERE user = ?";
         return jdbcTemplate.queryForList(sql, user);
     }
