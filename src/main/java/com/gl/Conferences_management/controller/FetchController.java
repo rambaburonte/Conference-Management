@@ -239,8 +239,11 @@ public class FetchController {
 
     @GetMapping("/important-details/shortname/{shortname}")
     public List<Map<String, Object>> getImportantDetailsByShortName(@PathVariable("shortname") String shortname) {
+        log.info("Fetching important details for shortname: {}", shortname);
         String sql = "SELECT * FROM important_details WHERE ShortName = ?";
-        return jdbcTemplate.queryForList(sql, shortname);
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, shortname);
+        log.info("Fetched {} important details for shortname: {}", result.size(), shortname);
+        return result;
     }
 
     @GetMapping("/important-details/id/{id}")
