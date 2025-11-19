@@ -51,7 +51,18 @@ public class ContactController {
                 request.getEmail(), request.getCategory());
             
             // Send email
-            mailService.sendEmail(request.getEmail(), "Subscription Confirmation", "Thank you for subscribing to our updates.");
+            try {
+                String toEmail = request.getEmail(); // default to submitted email
+                if (request.getUser() != null) {
+                    String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, request.getUser());
+                    if (loginEmail != null) {
+                        toEmail = loginEmail;
+                    }
+                }
+                mailService.sendEmail(toEmail, "Subscription Confirmation", "Thank you for subscribing to our updates.");
+            } catch (Exception e) {
+                // Log email error if needed
+            }
             
             return ResponseEntity.ok("Subscribed successfully");
         } catch (Exception e) {

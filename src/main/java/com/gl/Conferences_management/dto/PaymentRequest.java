@@ -13,7 +13,7 @@ public class PaymentRequest {
     private String org;
     private String paymentProvider;
     private double amount;
-    private String currency = "USD";
+    private String currency = "EUR";
    
     private String conf;
     private String category;
