@@ -16,15 +16,14 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
-import com.stripe.model.PaymentIntent;
-import com.stripe.param.PaymentIntentCreateParams;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 import com.gl.Conferences_management.dto.PaymentRequest;
 import com.gl.Conferences_management.service.MailService;
 
 import com.paypal.api.payments.Amount;
 import com.paypal.api.payments.Payer;
 import com.paypal.api.payments.Payment;
-import com.paypal.api.payments.PaymentExecution;
 import com.paypal.api.payments.RedirectUrls;
 import com.paypal.api.payments.Transaction;
 import com.paypal.base.rest.APIContext;
@@ -52,7 +51,7 @@ public class PaymentController {
     @Value("${paypal.client.secret}")
     private String paypalClientSecret;
 
-    // Create Stripe PaymentIntent
+    // Create Stripe Checkout Session - returns payment URL
     @PostMapping("/stripe/register")
     public ResponseEntity<?> createStripePaymentIntent(@RequestBody PaymentRequest req) {
         log.info("Received Stripe payment request for user: {}, amount: {}, currency: {}", req.getUser(), req.getAmount(), req.getCurrency());
@@ -66,20 +65,38 @@ public class PaymentController {
             String cancelUrl = req.getCancelUrl() == null ? "/paymentcancel" : req.getCancelUrl();
             log.debug("Stripe payment details - amountCents: {}, currency: {}", amountCents, currency);
 
-            PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
-                    .setAmount(amountCents)
-                    .setCurrency(currency)
+            // Create Checkout Session instead of PaymentIntent
+            SessionCreateParams params = SessionCreateParams.builder()
+                    .setMode(SessionCreateParams.Mode.PAYMENT)
+                    .setSuccessUrl(successUrl)
+                    .setCancelUrl(cancelUrl)
+                    .addLineItem(
+                        SessionCreateParams.LineItem.builder()
+                            .setQuantity(1L)
+                            .setPriceData(
+                                SessionCreateParams.LineItem.PriceData.builder()
+                                    .setCurrency(currency)
+                                    .setUnitAmount(amountCents)
+                                    .setProductData(
+                                        SessionCreateParams.LineItem.PriceData.ProductData.builder()
+                                            .setName(req.getDescription() != null ? req.getDescription() : "Conference Registration")
+                                            .build()
+                                    )
+                                    .build()
+                            )
+                            .build()
+                    )
                     .putMetadata("email", req.getEmail() == null ? "" : req.getEmail())
                     .putMetadata("name", req.getName() == null ? "" : req.getName())
                     .build();
 
-            PaymentIntent intent = PaymentIntent.create(params);
-            log.info("Stripe PaymentIntent created with ID: {}", intent.getId());
+            Session session = Session.create(params);
+            log.info("Stripe Checkout Session created with ID: {}", session.getId());
 
             // Insert into DB
             jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stripe', 0, ?, null, ?)",
-                    req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), intent.getId(), LocalDate.now());
-            log.info("Registration inserted into database with token: {}", intent.getId());
+                    req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), session.getId(), LocalDate.now());
+            log.info("Registration inserted into database with token: {}", session.getId());
             
             // Send email
             try {
@@ -100,16 +117,15 @@ public class PaymentController {
             }
 
             Map<String, Object> resp = new HashMap<>();
-            resp.put("clientSecret", intent.getClientSecret());
-            resp.put("id", intent.getId());
-            resp.put("status", intent.getStatus());
+            resp.put("sessionId", session.getId());
+            resp.put("url", session.getUrl());  // This is the payment URL from Stripe
             resp.put("successUrl", successUrl);
             resp.put("cancelUrl", cancelUrl);
-            log.info("Stripe payment intent response prepared for ID: {}", intent.getId());
+            log.info("Stripe checkout session response prepared for ID: {}", session.getId());
             return ResponseEntity.ok(resp);
 
         } catch (StripeException | NumberFormatException e) {
-            log.error("Error creating Stripe payment intent for user: {}", req.getUser(), e);
+            log.error("Error creating Stripe checkout session for user: {}", req.getUser(), e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
@@ -210,17 +226,18 @@ public class PaymentController {
         }
 
         try {
-            PaymentIntent intent = PaymentIntent.retrieve(token);
-            log.debug("Retrieved Stripe PaymentIntent: {}, status: {}", intent.getId(), intent.getStatus());
-            String t_id = intent.getId();
-            if ("succeeded".equals(intent.getStatus())) {
+            // Retrieve the Checkout Session instead of PaymentIntent
+            Session session = Session.retrieve(token);
+            log.debug("Retrieved Stripe Checkout Session: {}, payment_status: {}", session.getId(), session.getPaymentStatus());
+            String t_id = session.getId();
+            if ("paid".equals(session.getPaymentStatus())) {
                 jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'stripe'",
                         t_id, token);
                 log.info("Stripe payment confirmed and registration updated for token: {}", token);
                 return ResponseEntity.ok(Map.of("status", "success"));
             } else {
-                log.warn("Stripe payment not succeeded for token: {}, status: {}", token, intent.getStatus());
-                return ResponseEntity.badRequest().body(Map.of("error", "Payment not succeeded"));
+                log.warn("Stripe payment not completed for token: {}, payment_status: {}", token, session.getPaymentStatus());
+                return ResponseEntity.badRequest().body(Map.of("error", "Payment not completed"));
             }
         } catch (StripeException e) {
             log.error("Error confirming Stripe payment for token: {}", token, e);
