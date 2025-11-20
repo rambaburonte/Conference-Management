@@ -252,6 +252,15 @@ public class FetchController {
         return jdbcTemplate.queryForList(sql, id);
     }
 
+    @GetMapping("/importatedates/shortname/{shortname}")
+    public List<Map<String, Object>> getImportatedatesByShortName(@PathVariable("shortname") String shortname) {
+        log.info("Fetching importatedates for shortname: {}", shortname);
+        String sql = "SELECT * FROM importatedates WHERE ShortName = ?";
+        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, shortname);
+        log.info("Fetched {} importatedates for shortname: {}", result.size(), shortname);
+        return result;
+    }
+
     @GetMapping("/indian-reg-req")
     public List<Map<String, Object>> getIndianRegReq() {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
@@ -396,6 +405,12 @@ public class FetchController {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
         String tableName = camelToSnake(methodName.substring(3));
         return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
+    }
+
+    @GetMapping("/meta-tags/user/{user}")
+    public List<Map<String, Object>> getMetaTagsByUser(@PathVariable("user") Integer user) {
+        String sql = "SELECT * FROM meta_tags WHERE user = ?";
+        return jdbcTemplate.queryForList(sql, user);
     }
 
     @GetMapping("/more-speakers")
