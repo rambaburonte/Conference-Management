@@ -65,8 +65,8 @@ public class PaymentController {
             String successUrl = req.getSuccessUrl() == null ? "/paymentsuccess" : req.getSuccessUrl();
             String cancelUrl = req.getCancelUrl() == null ? "/paymentcancel" : req.getCancelUrl();
             // Append Stripe session ID placeholder to URLs
-            String successUrlWithSession = successUrl + (successUrl.contains("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}";
-            String cancelUrlWithSession = cancelUrl + (cancelUrl.contains("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}";
+            String successUrlWithSession = successUrl + (successUrl.contains("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}&provider=stripe";
+            String cancelUrlWithSession = cancelUrl + (cancelUrl.contains("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}&provider=stripe";
             log.debug("Stripe payment details - amountCents: {}, currency: {}", amountCents, currency);
 
             // Create Checkout Session instead of PaymentIntent
@@ -145,8 +145,8 @@ public class PaymentController {
         String successUrl = req.getSuccessUrl() == null ? "/paymentsuccess" : req.getSuccessUrl();
         String cancelUrl = req.getCancelUrl() == null ? "/paymentcancel" : req.getCancelUrl();
         // Add session_id placeholder for PayPal, to be replaced after payment creation
-        String successUrlWithSession = successUrl + (successUrl.contains("?") ? "&" : "?") + "session_id={paymentId}";
-        String cancelUrlWithSession = cancelUrl + (cancelUrl.contains("?") ? "&" : "?") + "session_id={paymentId}";
+        String successUrlWithSession = successUrl + (successUrl.contains("?") ? "&" : "?") + "session_id={paymentId}&provider=paypal";
+        String cancelUrlWithSession = cancelUrl + (cancelUrl.contains("?") ? "&" : "?") + "session_id={paymentId}&provider=paypal";
         log.debug("PayPal payment details - total: {}, currency: {}", total, currency);
 
         APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, "sandbox");
