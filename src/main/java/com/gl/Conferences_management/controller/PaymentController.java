@@ -63,13 +63,16 @@ public class PaymentController {
             String currency = req.getCurrency() == null ? "usd" : req.getCurrency().toLowerCase();
             String successUrl = req.getSuccessUrl() == null ? "/paymentsuccess" : req.getSuccessUrl();
             String cancelUrl = req.getCancelUrl() == null ? "/paymentcancel" : req.getCancelUrl();
+            // Append Stripe session ID placeholder to URLs
+            String successUrlWithSession = successUrl + (successUrl.contains("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}";
+            String cancelUrlWithSession = cancelUrl + (cancelUrl.contains("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}";
             log.debug("Stripe payment details - amountCents: {}, currency: {}", amountCents, currency);
 
             // Create Checkout Session instead of PaymentIntent
-            SessionCreateParams params = SessionCreateParams.builder()
+                SessionCreateParams params = SessionCreateParams.builder()
                     .setMode(SessionCreateParams.Mode.PAYMENT)
-                    .setSuccessUrl(successUrl)
-                    .setCancelUrl(cancelUrl)
+                    .setSuccessUrl(successUrlWithSession)
+                    .setCancelUrl(cancelUrlWithSession)
                     .addLineItem(
                         SessionCreateParams.LineItem.builder()
                             .setQuantity(1L)
