@@ -144,6 +144,9 @@ public class PaymentController {
         String currency = req.getCurrency() == null ? "USD" : req.getCurrency();
         String successUrl = req.getSuccessUrl() == null ? "/paymentsuccess" : req.getSuccessUrl();
         String cancelUrl = req.getCancelUrl() == null ? "/paymentcancel" : req.getCancelUrl();
+        // Add session_id placeholder for PayPal, to be replaced after payment creation
+        String successUrlWithSession = successUrl + (successUrl.contains("?") ? "&" : "?") + "session_id={paymentId}";
+        String cancelUrlWithSession = cancelUrl + (cancelUrl.contains("?") ? "&" : "?") + "session_id={paymentId}";
         log.debug("PayPal payment details - total: {}, currency: {}", total, currency);
 
         APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, "sandbox");
@@ -165,8 +168,9 @@ public class PaymentController {
         payment.setTransactions(List.of(transaction));
 
         RedirectUrls redirectUrls = new RedirectUrls();
-        redirectUrls.setCancelUrl(cancelUrl);
-        redirectUrls.setReturnUrl(successUrl);
+        // Temporarily set without session_id, will update after payment creation
+        redirectUrls.setCancelUrl(cancelUrlWithSession);
+        redirectUrls.setReturnUrl(successUrlWithSession);
         payment.setRedirectUrls(redirectUrls);
 
         try {
@@ -202,7 +206,8 @@ public class PaymentController {
             }
 
             Map<String, Object> resp = new HashMap<>();
-            resp.put("paymentId", createdPayment.getId());
+            resp.put("paymentId", createdPayment.getId()); // PayPal payment/session id
+            resp.put("sessionId", createdPayment.getId()); // Also send as sessionId for FE consistency
             resp.put("approvalUrl", approvalUrl);
             resp.put("successUrl", successUrl);
             resp.put("cancelUrl", cancelUrl);
