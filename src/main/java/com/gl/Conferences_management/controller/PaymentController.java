@@ -106,11 +106,15 @@ public class PaymentController {
             try {
                 String toEmail = req.getEmail(); // default to submitted email
                 if (req.getUser() != null) {
-                    String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
-                    if (loginEmail != null) {
-                        toEmail = loginEmail;
-                        log.info("Using login email for Stripe registration: {}", loginEmail);
-                    } else {
+                    try {
+                        String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
+                        if (loginEmail != null) {
+                            toEmail = loginEmail;
+                            log.info("Using login email for Stripe registration: {}", loginEmail);
+                        } else {
+                            log.warn("No login email found for user: {}, using submitted email: {}", req.getUser(), req.getEmail());
+                        }
+                    } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
                         log.warn("No login email found for user: {}, using submitted email: {}", req.getUser(), req.getEmail());
                     }
                 }
@@ -240,10 +244,16 @@ public class PaymentController {
             log.debug("Retrieved Stripe Checkout Session: {}, payment_status: {}", session.getId(), session.getPaymentStatus());
             String t_id = session.getId();
             if ("paid".equals(session.getPaymentStatus())) {
-                jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'stripe'",
+                log.info("Attempting to update registration: token={}, t_id={}, payment_type=stripe", sessionId, t_id);
+                int updated = jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'stripe'",
                         t_id, sessionId);
-                log.info("Stripe payment confirmed and registration updated for sessionId: {}", sessionId);
-                return ResponseEntity.ok(Map.of("status", "success"));
+                log.info("Stripe payment confirmed. Update count: {} for sessionId: {}", updated, sessionId);
+                if (updated > 0) {
+                    return ResponseEntity.ok(Map.of("status", "success"));
+                } else {
+                    log.warn("No registration row updated for token={}, payment_type=stripe", sessionId);
+                    return ResponseEntity.status(404).body(Map.of("error", "No registration found to update"));
+                }
             } else {
                 log.warn("Stripe payment not completed for sessionId: {}, payment_status: {}", sessionId, session.getPaymentStatus());
                 return ResponseEntity.badRequest().body(Map.of("error", "Payment not completed"));
@@ -273,10 +283,16 @@ public class PaymentController {
             log.debug("Retrieved PayPal payment: {}, state: {}", payment.getId(), payment.getState());
             String t_id = payment.getId();
             if ("approved".equals(payment.getState())) {
-                jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'paypal'",
+                log.info("Attempting to update registration: token={}, t_id={}, payment_type=paypal", paymentId, t_id);
+                int updated = jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'paypal'",
                         t_id, paymentId);
-                log.info("PayPal payment confirmed and registration updated for paymentId: {}", paymentId);
-                return ResponseEntity.ok(Map.of("status", "success"));
+                log.info("PayPal payment confirmed. Update count: {} for paymentId: {}", updated, paymentId);
+                if (updated > 0) {
+                    return ResponseEntity.ok(Map.of("status", "success"));
+                } else {
+                    log.warn("No registration row updated for token={}, payment_type=paypal", paymentId);
+                    return ResponseEntity.status(404).body(Map.of("error", "No registration found to update"));
+                }
             } else {
                 log.warn("PayPal payment not approved for paymentId: {}, state: {}", paymentId, payment.getState());
                 return ResponseEntity.badRequest().body(Map.of("error", "Payment not approved"));
