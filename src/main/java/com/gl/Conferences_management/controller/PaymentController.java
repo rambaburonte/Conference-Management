@@ -226,30 +226,30 @@ public class PaymentController {
     // Confirm Stripe payment success
     @PostMapping("/stripe/success")
     public ResponseEntity<?> confirmStripePayment(@RequestBody Map<String, String> body) {
-        String token = body.get("token");
-        log.info("Received Stripe payment confirmation for token: {}", token);
+        String sessionId = body.get("token");
+        log.info("Received Stripe payment confirmation for sessionId: {}", sessionId);
 
-        if (token == null) {
-            log.warn("Token is required for Stripe payment confirmation");
-            return ResponseEntity.badRequest().body(Map.of("error", "token is required"));
+        if (sessionId == null) {
+            log.warn("Session ID is required for Stripe payment confirmation");
+            return ResponseEntity.badRequest().body(Map.of("error", "session_id is required"));
         }
 
         try {
-            // Retrieve the Checkout Session instead of PaymentIntent
-            Session session = Session.retrieve(token);
+            // Always check payment status from Stripe using sessionId
+            Session session = Session.retrieve(sessionId);
             log.debug("Retrieved Stripe Checkout Session: {}, payment_status: {}", session.getId(), session.getPaymentStatus());
             String t_id = session.getId();
             if ("paid".equals(session.getPaymentStatus())) {
                 jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'stripe'",
-                        t_id, token);
-                log.info("Stripe payment confirmed and registration updated for token: {}", token);
+                        t_id, sessionId);
+                log.info("Stripe payment confirmed and registration updated for sessionId: {}", sessionId);
                 return ResponseEntity.ok(Map.of("status", "success"));
             } else {
-                log.warn("Stripe payment not completed for token: {}, payment_status: {}", token, session.getPaymentStatus());
+                log.warn("Stripe payment not completed for sessionId: {}, payment_status: {}", sessionId, session.getPaymentStatus());
                 return ResponseEntity.badRequest().body(Map.of("error", "Payment not completed"));
             }
         } catch (StripeException e) {
-            log.error("Error confirming Stripe payment for token: {}", token, e);
+            log.error("Error confirming Stripe payment for sessionId: {}", sessionId, e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
@@ -259,30 +259,30 @@ public class PaymentController {
     // Confirm PayPal payment success
     @PostMapping("/paypal/success")
     public ResponseEntity<?> confirmPaypalPayment(@RequestBody Map<String, String> body) {
-        String token = body.get("token");
-        log.info("Received PayPal payment confirmation for token: {}", token);
+        String paymentId = body.get("token");
+        log.info("Received PayPal payment confirmation for paymentId: {}", paymentId);
 
-        if (token == null) {
-            log.warn("Token is required for PayPal payment confirmation");
-            return ResponseEntity.badRequest().body(Map.of("error", "token is required"));
+        if (paymentId == null) {
+            log.warn("paymentId is required for PayPal payment confirmation");
+            return ResponseEntity.badRequest().body(Map.of("error", "paymentId is required"));
         }
 
         try {
             APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, "sandbox");
-            Payment payment = Payment.get(apiContext, token);
+            Payment payment = Payment.get(apiContext, paymentId);
             log.debug("Retrieved PayPal payment: {}, state: {}", payment.getId(), payment.getState());
             String t_id = payment.getId();
             if ("approved".equals(payment.getState())) {
                 jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'paypal'",
-                        t_id, token);
-                log.info("PayPal payment confirmed and registration updated for token: {}", token);
+                        t_id, paymentId);
+                log.info("PayPal payment confirmed and registration updated for paymentId: {}", paymentId);
                 return ResponseEntity.ok(Map.of("status", "success"));
             } else {
-                log.warn("PayPal payment not approved for token: {}, state: {}", token, payment.getState());
+                log.warn("PayPal payment not approved for paymentId: {}, state: {}", paymentId, payment.getState());
                 return ResponseEntity.badRequest().body(Map.of("error", "Payment not approved"));
             }
         } catch (PayPalRESTException e) {
-            log.error("Error confirming PayPal payment for token: {}", token, e);
+            log.error("Error confirming PayPal payment for paymentId: {}", paymentId, e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
