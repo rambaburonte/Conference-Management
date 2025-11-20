@@ -252,15 +252,6 @@ public class FetchController {
         return jdbcTemplate.queryForList(sql, id);
     }
 
-    @GetMapping("/importatedates/shortname/{shortname}")
-    public List<Map<String, Object>> getImportatedatesByShortName(@PathVariable("shortname") String shortname) {
-        log.info("Fetching importatedates for shortname: {}", shortname);
-        String sql = "SELECT * FROM importatedates WHERE ShortName = ?";
-        List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, shortname);
-        log.info("Fetched {} importatedates for shortname: {}", result.size(), shortname);
-        return result;
-    }
-
     @GetMapping("/indian-reg-req")
     public List<Map<String, Object>> getIndianRegReq() {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
