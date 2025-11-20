@@ -1,3 +1,4 @@
+   
 package com.gl.Conferences_management.controller;
 
 import java.time.LocalDate;
@@ -280,6 +281,24 @@ public class PaymentController {
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
+        }
+    }
+
+     // Fallback: Update registration status by token
+    @PostMapping("/update-status-by-token")
+    public ResponseEntity<?> updateStatusByToken(@RequestBody Map<String, String> body) {
+        String token = body.get("token");
+        log.info("Received fallback status update for token: {}", token);
+        if (token == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "token is required"));
+        }
+        int updated = jdbcTemplate.update("UPDATE registrations SET status = 1 WHERE token = ?", token);
+        if (updated > 0) {
+            log.info("Registration status updated for token: {}", token);
+            return ResponseEntity.ok(Map.of("status", "updated"));
+        } else {
+            log.warn("No registration found for token: {}", token);
+            return ResponseEntity.status(404).body(Map.of("error", "Registration not found"));
         }
     }
 }
