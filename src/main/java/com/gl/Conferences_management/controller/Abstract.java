@@ -2,7 +2,6 @@ package com.gl.Conferences_management.controller;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.InetAddress;
 import java.sql.Date;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
@@ -27,6 +26,7 @@ import com.gl.Conferences_management.dto.AbstractSubmissionRequest;
 import com.gl.Conferences_management.dto.AbstractSubmissionResponse;
 import com.gl.Conferences_management.service.MailService;
 
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
@@ -58,12 +58,13 @@ public class Abstract {
     @PostMapping("/submit")
     public ResponseEntity<AbstractSubmissionResponse> submitAbstract(
             @RequestParam("file") MultipartFile file,
-            @ModelAttribute AbstractSubmissionRequest request
+            @ModelAttribute AbstractSubmissionRequest request,
+            HttpServletRequest httpRequest
     ) {
         log.info("Received abstract submission request from user: {}, title: {}", request.getUser(), request.getTitle());
         FTPClient ftpClient = new FTPClient();
         try {
-            String ipAddress = InetAddress.getLocalHost().getHostAddress();
+            String ipAddress = httpRequest.getRemoteAddr();
             log.debug("Client IP address: {}", ipAddress);
 
             // Insert into database without attachment to get ID
@@ -117,7 +118,30 @@ public class Abstract {
                     try {
                         String userEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, request.getUser());
                         if (userEmail != null) {
-                            mailService.sendEmail(userEmail, "Abstract Submission Confirmation", "Your abstract has been submitted successfully.");
+                            String subject = "New Abstract Submission";
+                            String body = String.format(
+                                "Someone has submitted an abstract.\n\n" +
+                                "Submission Details:\n" +
+                                "ID: %d\n" +
+                                "Title: %s\n" +
+                                "Name: %s\n" +
+                                "Email: %s\n" +
+                                "Country: %s\n" +
+                                "Organization: %s\n" +
+                                "Phone: %s\n" +
+                                "Category: %s\n" +
+                                "Track: %s\n" +
+                                "Address: %s\n" +
+                                "Paper Title: %s\n" +
+                                "Date: %s\n" +
+                                "IP Address: %s\n\n" +
+                                "Please review the submission.",
+                                id, request.getTitle(), request.getFname(), request.getEmail(),
+                                request.getCountry(), request.getOrg(), request.getPhno(),
+                                request.getCategory(), request.getTrackName(), request.getAddress(),
+                                request.getPresentationTitle(), LocalDate.now(), ipAddress
+                            );
+                            mailService.sendEmail(userEmail, subject, body);
                             log.info("Abstract submission confirmation email sent to: {}", userEmail);
                         } else {
                             log.warn("No email found in login_details for user: {}", request.getUser());
