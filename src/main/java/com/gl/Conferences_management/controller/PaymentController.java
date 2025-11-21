@@ -17,13 +17,11 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.gl.Conferences_management.dto.PaymentRequest;
 import com.gl.Conferences_management.service.MailService;
-import com.paypal.api.payments.Amount;
-import com.paypal.api.payments.Payer;
-import com.paypal.api.payments.Payment;
-import com.paypal.api.payments.RedirectUrls;
-import com.paypal.api.payments.Transaction;
-import com.paypal.base.rest.APIContext;
-import com.paypal.base.rest.PayPalRESTException;
+import com.paypal.core.PayPalHttpClient;
+import com.paypal.core.SandboxEnvironment;
+import com.paypal.core.ProductionEnvironment;
+import com.paypal.orders.*;
+import com.paypal.http.HttpResponse;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
@@ -156,45 +154,42 @@ public class PaymentController {
         String cancelUrlWithSession = cancelUrl + "?provider=paypal";
         log.debug("PayPal payment details - total: {}, currency: {}", total, currency);
 
-        APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, paypalMode);
+        PayPalHttpClient client;
+        if ("sandbox".equals(paypalMode)) {
+            client = new PayPalHttpClient(new SandboxEnvironment(paypalClientId, paypalClientSecret));
+        } else {
+            client = new PayPalHttpClient(new ProductionEnvironment(paypalClientId, paypalClientSecret));
+        }
 
-        Amount amount = new Amount();
-        amount.setCurrency(currency);
-        amount.setTotal(total);
+        OrderRequest orderRequest = new OrderRequest();
+        orderRequest.checkoutPaymentIntent("CAPTURE");
+        PurchaseUnitRequest purchaseUnit = new PurchaseUnitRequest()
+            .amount(new AmountWithBreakdown()
+                .currencyCode(currency)
+                .value(total))
+            .description(req.getDescription() == null ? "Conference registration payment" : req.getDescription());
+        orderRequest.purchaseUnits(List.of(purchaseUnit));
+        orderRequest.applicationContext(new ApplicationContext()
+            .returnUrl(successUrlWithSession)
+            .cancelUrl(cancelUrlWithSession));
 
-        Transaction transaction = new Transaction();
-        transaction.setAmount(amount);
-        transaction.setDescription(req.getDescription() == null ? "Conference registration payment" : req.getDescription());
-
-        Payer payer = new Payer();
-        payer.setPaymentMethod("paypal");
-
-        Payment payment = new Payment();
-        payment.setIntent("sale");
-        payment.setPayer(payer);
-        payment.setTransactions(List.of(transaction));
-
-        RedirectUrls redirectUrls = new RedirectUrls();
-        // Temporarily set without session_id, will update after payment creation
-        redirectUrls.setCancelUrl(cancelUrlWithSession);
-        redirectUrls.setReturnUrl(successUrlWithSession);
-        payment.setRedirectUrls(redirectUrls);
-
+        OrdersCreateRequest createRequest = new OrdersCreateRequest().requestBody(orderRequest);
         try {
-            Payment createdPayment = payment.create(apiContext);
-            String approvalUrl = createdPayment.getLinks().stream()
-                    .filter(link -> "approval_url".equalsIgnoreCase(link.getRel()))
-                    .findFirst()
-                    .map(link -> link.getHref())
-                    .orElse(null);
-            log.info("PayPal payment created with ID: {}", createdPayment.getId());
+            HttpResponse<Order> response = client.execute(createRequest);
+            Order createdOrder = response.result();
+            String approvalUrl = createdOrder.links().stream()
+                .filter(link -> "approve".equals(link.rel()))
+                .findFirst()
+                .map(LinkDescription::href)
+                .orElse(null);
+            log.info("PayPal order created with ID: {}", createdOrder.id());
 
                 // Generate invoice number (e.g., INV20251121-<random 5 digits>)
                 String invoiceNumber = "INV" + java.time.LocalDate.now().toString().replaceAll("-", "") + "-" + (int)(Math.random()*90000+10000);
                 // Insert into DB with invoice_number
                 jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date, invoice_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paypal', 0, ?, null, ?, ?)",
-                    req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), createdPayment.getId(), LocalDate.now(), invoiceNumber);
-                log.info("PayPal registration inserted into database with token: {} and invoice_number: {}", createdPayment.getId(), invoiceNumber);
+                    req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), createdOrder.id(), LocalDate.now(), invoiceNumber);
+                log.info("PayPal registration inserted into database with token: {} and invoice_number: {}", createdOrder.id(), invoiceNumber);
             
             // Send email
             try {
@@ -215,15 +210,15 @@ public class PaymentController {
             }
 
             Map<String, Object> resp = new HashMap<>();
-            resp.put("orderId", createdPayment.getId()); // PayPal order id
-            resp.put("sessionId", createdPayment.getId()); // Also send as sessionId for FE consistency
+            resp.put("orderId", createdOrder.id()); // PayPal order id
+            resp.put("sessionId", createdOrder.id()); // Also send as sessionId for FE consistency
             resp.put("approvalUrl", approvalUrl);
             resp.put("successUrl", successUrl);
             resp.put("cancelUrl", cancelUrl);
-            log.info("PayPal payment response prepared for ID: {}", createdPayment.getId());
+            log.info("PayPal order response prepared for ID: {}", createdOrder.id());
             return ResponseEntity.ok(resp);
-        } catch (PayPalRESTException e) {
-            log.error("Error creating PayPal payment for user: {}", req.getUser(), e);
+        } catch (Exception e) {
+            log.error("Error creating PayPal order for user: {}", req.getUser(), e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
@@ -274,36 +269,47 @@ public class PaymentController {
     // Confirm PayPal payment success
     @PostMapping("/paypal/success")
     public ResponseEntity<?> confirmPaypalPayment(@RequestBody Map<String, String> body) {
-        String paymentId = body.get("token");
-        log.info("Received PayPal payment confirmation for paymentId: {}", paymentId);
+        String orderId = body.get("token");
+        log.info("Received PayPal payment confirmation for orderId: {}", orderId);
 
-        if (paymentId == null) {
-            log.warn("paymentId is required for PayPal payment confirmation");
-            return ResponseEntity.badRequest().body(Map.of("error", "paymentId is required"));
+        if (orderId == null) {
+            log.warn("orderId is required for PayPal payment confirmation");
+            return ResponseEntity.badRequest().body(Map.of("error", "orderId is required"));
+        }
+
+        PayPalHttpClient client;
+        if ("sandbox".equals(paypalMode)) {
+            client = new PayPalHttpClient(new SandboxEnvironment(paypalClientId, paypalClientSecret));
+        } else {
+            client = new PayPalHttpClient(new ProductionEnvironment(paypalClientId, paypalClientSecret));
         }
 
         try {
-            APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, paypalMode);
-            Payment payment = Payment.get(apiContext, paymentId);
-            log.debug("Retrieved PayPal payment: {}, state: {}", payment.getId(), payment.getState());
-            String t_id = payment.getTransactions().get(0).getRelatedResources().get(0).getSale().getId();
-            if ("approved".equals(payment.getState())) {
-                log.info("Attempting to update registration: token={}, t_id={}, payment_type=paypal", paymentId, t_id);
+            OrdersGetRequest getRequest = new OrdersGetRequest(orderId);
+            HttpResponse<Order> getResponse = client.execute(getRequest);
+            Order order = getResponse.result();
+            log.debug("Retrieved PayPal order: {}, status: {}", order.id(), order.status());
+            if ("APPROVED".equals(order.status())) {
+                OrdersCaptureRequest captureRequest = new OrdersCaptureRequest(orderId);
+                HttpResponse<Order> captureResponse = client.execute(captureRequest);
+                Order capturedOrder = captureResponse.result();
+                String t_id = capturedOrder.purchaseUnits().get(0).payments().captures().get(0).id();
+                log.info("Attempting to update registration: token={}, t_id={}, payment_type=paypal", orderId, t_id);
                 int updated = jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'paypal'",
-                        t_id, paymentId);
-                log.info("PayPal payment confirmed. Update count: {} for paymentId: {}", updated, paymentId);
+                        t_id, orderId);
+                log.info("PayPal payment confirmed. Update count: {} for orderId: {}", updated, orderId);
                 if (updated > 0) {
                     return ResponseEntity.ok(Map.of("status", "success"));
                 } else {
-                    log.warn("No registration row updated for token={}, payment_type=paypal", paymentId);
+                    log.warn("No registration row updated for token={}, payment_type=paypal", orderId);
                     return ResponseEntity.status(404).body(Map.of("error", "No registration found to update"));
                 }
             } else {
-                log.warn("PayPal payment not approved for paymentId: {}, state: {}", paymentId, payment.getState());
-                return ResponseEntity.badRequest().body(Map.of("error", "Payment not approved"));
+                log.warn("PayPal order not approved for orderId: {}, status: {}", orderId, order.status());
+                return ResponseEntity.badRequest().body(Map.of("error", "Order not approved"));
             }
-        } catch (PayPalRESTException e) {
-            log.error("Error confirming PayPal payment for paymentId: {}", paymentId, e);
+        } catch (Exception e) {
+            log.error("Error confirming PayPal payment for orderId: {}", orderId, e);
             Map<String, Object> err = new HashMap<>();
             err.put("error", e.getMessage());
             return ResponseEntity.status(500).body(err);
