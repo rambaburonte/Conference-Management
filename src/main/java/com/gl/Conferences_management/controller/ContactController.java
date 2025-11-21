@@ -37,7 +37,12 @@ public class ContactController {
             try {
                 String userEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, request.getUser());
                 if (userEmail != null) {
-                    mailService.sendEmail(userEmail, "Contact Us Confirmation", "Thank you for contacting us. We will get back to you soon.");
+                    String emailBody = "Someone is contacting you with the following entered data:\n\n" +
+                        "Name: " + request.getName() + "\n" +
+                        "Email: " + request.getEmail() + "\n" +
+                        "Subject: " + request.getSubject() + "\n" +
+                        "Message: " + request.getMessage();
+                    mailService.sendEmail(userEmail, "Someone contacting you", emailBody);
                     log.info("Contact confirmation email sent to: {}", userEmail);
                 } else {
                     log.warn("No email found in login_details for user: {}", request.getUser());
