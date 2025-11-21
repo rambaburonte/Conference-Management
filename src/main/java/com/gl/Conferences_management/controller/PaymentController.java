@@ -286,7 +286,7 @@ public class PaymentController {
             APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, paypalMode);
             Payment payment = Payment.get(apiContext, paymentId);
             log.debug("Retrieved PayPal payment: {}, state: {}", payment.getId(), payment.getState());
-            String t_id = payment.getId();
+            String t_id = payment.getTransactions().get(0).getRelatedResources().get(0).getSale().getId();
             if ("approved".equals(payment.getState())) {
                 log.info("Attempting to update registration: token={}, t_id={}, payment_type=paypal", paymentId, t_id);
                 int updated = jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'paypal'",
