@@ -392,6 +392,7 @@ public class PaymentController {
                 // Get registration details
                 Map<String, Object> reg = jdbcTemplate.queryForMap("SELECT * FROM registrations WHERE token = ? AND payment_type = ?", token, paymentType);
                 if (reg != null) {
+                    // Send detailed email to login email
                     String subject = "Registration Successful";
                     String body = String.format(
                         "Your registration for the conference has been successfully completed.\n\n" +
@@ -413,7 +414,16 @@ public class PaymentController {
                         reg.get("price"), "EUR", reg.get("conf"), paymentType, reg.get("invoice_number")
                     );
                     mailService.sendEmail(loginEmail, subject, body);
-                    log.info("Registration success email sent to: {}", loginEmail);
+                    log.info("Registration success email sent to login email: {}", loginEmail);
+
+                    // Send simple confirmation to registration email
+                    String regEmail = (String) reg.get("email");
+                    if (regEmail != null && !regEmail.equals(loginEmail)) {
+                        String simpleSubject = "Registration Confirmation";
+                        String simpleBody = String.format("You are registered to %s. Our team will contact you soon.", reg.get("conf"));
+                        mailService.sendEmail(regEmail, simpleSubject, simpleBody);
+                        log.info("Simple registration confirmation email sent to: {}", regEmail);
+                    }
                 } else {
                     log.warn("No registration found for token: {}, payment_type: {}", token, paymentType);
                 }
