@@ -51,6 +51,9 @@ public class PaymentController {
     @Value("${paypal.client.secret}")
     private String paypalClientSecret;
 
+    @Value("${paypal.mode}")
+    private String paypalMode;
+
     // Create Stripe Checkout Session - returns payment URL
     @PostMapping("/stripe/register")
     public ResponseEntity<?> createStripePaymentIntent(@RequestBody PaymentRequest req) {
@@ -61,8 +64,8 @@ public class PaymentController {
             // Convert amount (double dollars) to cents (long)
             long amountCents = Math.round(req.getAmount() * 100);
             String currency = req.getCurrency() == null ? "usd" : req.getCurrency().toLowerCase();
-            String successUrl = req.getSuccessUrl() == null ? "/paymentsuccess" : req.getSuccessUrl();
-            String cancelUrl = req.getCancelUrl() == null ? "/paymentcancel" : req.getCancelUrl();
+            String successUrl = req.getSuccessUrl() == null ? "/payment/success" : req.getSuccessUrl();
+            String cancelUrl = req.getCancelUrl() == null ? "/payment/cancel" : req.getCancelUrl();
             // Append Stripe session ID placeholder to URLs
             String successUrlWithSession = successUrl + (successUrl.contains("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}&provider=stripe";
             String cancelUrlWithSession = cancelUrl + (cancelUrl.contains("?") ? "&" : "?") + "session_id={CHECKOUT_SESSION_ID}&provider=stripe";
@@ -147,14 +150,14 @@ public class PaymentController {
         log.info("Received PayPal payment request for user: {}, amount: {}, currency: {}", req.getUser(), req.getAmount(), req.getCurrency());
         String total = String.format("%.2f", req.getAmount()); // PayPal expects string format like "10.00"
         String currency = req.getCurrency() == null ? "USD" : req.getCurrency();
-        String successUrl = req.getSuccessUrl() == null ? "/paymentsuccess" : req.getSuccessUrl();
-        String cancelUrl = req.getCancelUrl() == null ? "/paymentcancel" : req.getCancelUrl();
-        // Add session_id placeholder for PayPal, to be replaced after payment creation
-        String successUrlWithSession = successUrl + (successUrl.contains("?") ? "&" : "?") + "session_id={paymentId}&provider=paypal";
-        String cancelUrlWithSession = cancelUrl + (cancelUrl.contains("?") ? "&" : "?") + "session_id={paymentId}&provider=paypal";
+        String successUrl = req.getSuccessUrl() == null ? "/payment/success" : req.getSuccessUrl();
+        String cancelUrl = req.getCancelUrl() == null ? "/payment/cancel" : req.getCancelUrl();
+        // Add session_id placeholder for PayPal - PayPal Payments API does not replace placeholders, so use base URL
+        String successUrlWithSession = successUrl;
+        String cancelUrlWithSession = cancelUrl;
         log.debug("PayPal payment details - total: {}, currency: {}", total, currency);
 
-        APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, "sandbox");
+        APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, paypalMode);
 
         Amount amount = new Amount();
         amount.setCurrency(currency);
@@ -245,7 +248,7 @@ public class PaymentController {
             // Always check payment status from Stripe using sessionId
             Session session = Session.retrieve(sessionId);
             log.debug("Retrieved Stripe Checkout Session: {}, payment_status: {}", session.getId(), session.getPaymentStatus());
-            String t_id = session.getId();
+            String t_id = session.getPaymentIntent();
             if ("paid".equals(session.getPaymentStatus())) {
                 log.info("Attempting to update registration: token={}, t_id={}, payment_type=stripe", sessionId, t_id);
                 int updated = jdbcTemplate.update("UPDATE registrations SET status = 1, t_id = ? WHERE token = ? AND payment_type = 'stripe'",
@@ -281,7 +284,7 @@ public class PaymentController {
         }
 
         try {
-            APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, "sandbox");
+            APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, paypalMode);
             Payment payment = Payment.get(apiContext, paymentId);
             log.debug("Retrieved PayPal payment: {}, state: {}", payment.getId(), payment.getState());
             String t_id = payment.getId();
