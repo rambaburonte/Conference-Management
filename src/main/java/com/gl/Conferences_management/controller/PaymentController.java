@@ -7,21 +7,16 @@ import java.util.List;
 import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.stripe.Stripe;
-import com.stripe.exception.StripeException;
-import com.stripe.model.checkout.Session;
-import com.stripe.param.checkout.SessionCreateParams;
 import com.gl.Conferences_management.dto.PaymentRequest;
 import com.gl.Conferences_management.service.MailService;
-
 import com.paypal.api.payments.Amount;
 import com.paypal.api.payments.Payer;
 import com.paypal.api.payments.Payment;
@@ -29,6 +24,10 @@ import com.paypal.api.payments.RedirectUrls;
 import com.paypal.api.payments.Transaction;
 import com.paypal.base.rest.APIContext;
 import com.paypal.base.rest.PayPalRESTException;
+import com.stripe.Stripe;
+import com.stripe.exception.StripeException;
+import com.stripe.model.checkout.Session;
+import com.stripe.param.checkout.SessionCreateParams;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -97,15 +96,17 @@ public class PaymentController {
             Session session = Session.create(params);
             log.info("Stripe Checkout Session created with ID: {}", session.getId());
 
-            // Insert into DB
-            jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stripe', 0, ?, null, ?)",
-                    req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), session.getId(), LocalDate.now());
-            log.info("Registration inserted into database with token: {}", session.getId());
+                // Generate invoice number (e.g., INV20251121-<random 5 digits>)
+                String invoiceNumber = "INV" + java.time.LocalDate.now().toString().replaceAll("-", "") + "-" + (int)(Math.random()*90000+10000);
+                // Insert into DB with invoice_number
+                jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date, invoice_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'stripe', 0, ?, null, ?, ?)",
+                    req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), session.getId(), LocalDate.now(), invoiceNumber);
+                log.info("Registration inserted into database with token: {} and invoice_number: {}", session.getId(), invoiceNumber);
             
             // Send email
             try {
                 String toEmail = req.getEmail(); // default to submitted email
-                if (req.getUser() != null) {
+                if (req.getUser() != null) {    
                     try {
                         String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
                         if (loginEmail != null) {
@@ -186,10 +187,12 @@ public class PaymentController {
                     .orElse(null);
             log.info("PayPal payment created with ID: {}", createdPayment.getId());
 
-            // Insert into DB
-            jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paypal', 0, ?, null, ?)",
-                    req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), createdPayment.getId(), LocalDate.now());
-            log.info("PayPal registration inserted into database with token: {}", createdPayment.getId());
+                // Generate invoice number (e.g., INV20251121-<random 5 digits>)
+                String invoiceNumber = "INV" + java.time.LocalDate.now().toString().replaceAll("-", "") + "-" + (int)(Math.random()*90000+10000);
+                // Insert into DB with invoice_number
+                jdbcTemplate.update("INSERT INTO registrations (title, name, email, phone, country, address, org, price, conf, category, description, payment_type, status, token, t_id, date, invoice_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'paypal', 0, ?, null, ?, ?)",
+                    req.getTitle(), req.getName(), req.getEmail(), req.getPhone(), req.getCountry(), req.getAddress(), req.getOrg(), req.getAmount(), req.getConf(), req.getCategory(), req.getDescription(), createdPayment.getId(), LocalDate.now(), invoiceNumber);
+                log.info("PayPal registration inserted into database with token: {} and invoice_number: {}", createdPayment.getId(), invoiceNumber);
             
             // Send email
             try {
