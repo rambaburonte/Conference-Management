@@ -439,15 +439,6 @@ public class PaymentController {
                     );
                     mailService.sendEmail(loginEmail, subject, body);
                     log.info("Registration success email sent to login email: {}", loginEmail);
-
-                    // Send simple confirmation to registration email
-                    String regEmail = (String) reg.get("email");
-                    if (regEmail != null && !regEmail.equals(loginEmail)) {
-                        String simpleSubject = "Registration Confirmation";
-                        String simpleBody = String.format("You are registered to %s. Our team will contact you soon.", reg.get("conf"));
-                        mailService.sendEmail(regEmail, simpleSubject, simpleBody);
-                        log.info("Simple registration confirmation email sent to: {}", regEmail);
-                    }
                 } else {
                     log.warn("No registration found for token: {}, payment_type: {}", token, paymentType);
                 }
