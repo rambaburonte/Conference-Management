@@ -20,6 +20,7 @@ import com.gl.Conferences_management.service.MailService;
 import com.paypal.api.payments.Amount;
 import com.paypal.api.payments.Payer;
 import com.paypal.api.payments.Payment;
+import com.paypal.api.payments.PaymentExecution;
 import com.paypal.api.payments.RedirectUrls;
 import com.paypal.api.payments.Transaction;
 import com.paypal.base.rest.APIContext;
@@ -274,7 +275,8 @@ public class PaymentController {
     @PostMapping("/paypal/success")
     public ResponseEntity<?> confirmPaypalPayment(@RequestBody Map<String, String> body) {
         String paymentId = body.get("token");
-        log.info("Received PayPal payment confirmation for paymentId: {}", paymentId);
+        String payerId = body.get("payerId");
+        log.info("Received PayPal payment confirmation for paymentId: {}, payerId: {}", paymentId, payerId);
 
         if (paymentId == null) {
             log.warn("paymentId is required for PayPal payment confirmation");
@@ -285,6 +287,14 @@ public class PaymentController {
             APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, paypalMode);
             Payment payment = Payment.get(apiContext, paymentId);
             log.debug("Retrieved PayPal payment: {}, state: {}", payment.getId(), payment.getState());
+
+            if ("created".equals(payment.getState())) {
+                PaymentExecution execution = new PaymentExecution();
+                execution.setPayerId(payerId);
+                payment = payment.execute(apiContext, execution);
+                log.debug("Executed PayPal payment: {}, new state: {}", payment.getId(), payment.getState());
+            }
+
             String t_id = payment.getTransactions().get(0).getRelatedResources().get(0).getSale().getId();
             if ("approved".equals(payment.getState())) {
                 log.info("Attempting to update registration: token={}, t_id={}, payment_type=paypal", paymentId, t_id);
