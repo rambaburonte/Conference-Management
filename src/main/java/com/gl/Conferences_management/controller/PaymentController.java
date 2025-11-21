@@ -170,8 +170,8 @@ public class PaymentController {
         String currency = req.getCurrency() == null ? "USD" : req.getCurrency();
         String successUrl = req.getSuccessUrl() == null ? "/payment/success" : req.getSuccessUrl();
         String cancelUrl = req.getCancelUrl() == null ? "/payment/cancel" : req.getCancelUrl();
-        String successUrlWithSession = successUrl + "?provider=paypal";
-        String cancelUrlWithSession = cancelUrl + "?provider=paypal";
+        String successUrlWithSession = successUrl + (successUrl.contains("?") ? "&" : "?") + "provider=paypal";
+        String cancelUrlWithSession = cancelUrl + (cancelUrl.contains("?") ? "&" : "?") + "provider=paypal";
         log.debug("PayPal payment details - total: {}, currency: {}", total, currency);
 
         APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, paypalMode);
@@ -282,6 +282,16 @@ public class PaymentController {
             return ResponseEntity.badRequest().body(Map.of("error", "session_id is required"));
         }
 
+        // If username is null, fetch from registrations table using conf column as username
+        if (username == null) {
+            try {
+                username = jdbcTemplate.queryForObject("SELECT conf FROM registrations WHERE token = ? AND payment_type = 'stripe'", String.class, sessionId);
+                log.info("Fetched username from registrations for token {}: {}", sessionId, username);
+            } catch (Exception e) {
+                log.warn("Could not fetch username from registrations for token: {}", sessionId, e);
+            }
+        }
+
         try {
             // Always check payment status from Stripe using sessionId
             Session session = Session.retrieve(sessionId);
@@ -295,7 +305,11 @@ public class PaymentController {
                 if (updated > 0) {
                     // Send success email
                     sendSuccessEmail(username, sessionId, "stripe");
-                    return ResponseEntity.ok(Map.of("status", "success", "username", username));
+                    if (username != null) {
+                        return ResponseEntity.ok(Map.of("status", "success", "username", username));
+                    } else {
+                        return ResponseEntity.ok(Map.of("status", "success"));
+                    }
                 } else {
                     log.warn("No registration row updated for token={}, payment_type=stripe", sessionId);
                     return ResponseEntity.status(404).body(Map.of("error", "No registration found to update"));
@@ -325,6 +339,16 @@ public class PaymentController {
             return ResponseEntity.badRequest().body(Map.of("error", "paymentId is required"));
         }
 
+        // If username is null, fetch from registrations table using conf column as username
+        if (username == null) {
+            try {
+                username = jdbcTemplate.queryForObject("SELECT conf FROM registrations WHERE token = ? AND payment_type = 'paypal'", String.class, paymentId);
+                log.info("Fetched username from registrations for token {}: {}", paymentId, username);
+            } catch (Exception e) {
+                log.warn("Could not fetch username from registrations for token: {}", paymentId, e);
+            }
+        }
+
         try {
             APIContext apiContext = new APIContext(paypalClientId, paypalClientSecret, paypalMode);
             Payment payment = Payment.get(apiContext, paymentId);
@@ -346,7 +370,7 @@ public class PaymentController {
                 if (updated > 0) {
                     // Send success email
                     sendSuccessEmail(username, paymentId, "paypal");
-                    return ResponseEntity.ok(Map.of("status", "success", "username", username));
+                        return ResponseEntity.ok(Map.of("status", "success", "username", username));
                 } else {
                     log.warn("No registration row updated for token={}, payment_type=paypal", paymentId);
                     return ResponseEntity.status(404).body(Map.of("error", "No registration found to update"));
