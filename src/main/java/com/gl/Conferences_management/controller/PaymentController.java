@@ -113,8 +113,28 @@ public class PaymentController {
                     try {
                         String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
                         if (loginEmail != null) {
-                            mailService.sendEmail(loginEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
-                            log.info("Registration confirmation email sent to: {}", loginEmail);
+                            String subject = "Registration Attempt Notification";
+                            String body = String.format(
+                                "Someone is trying to register for the conference.\n\n" +
+                                "Details:\n" +
+                                "Title: %s\n" +
+                                "Name: %s\n" +
+                                "Email: %s\n" +
+                                "Phone: %s\n" +
+                                "Country: %s\n" +
+                                "Organization: %s\n" +
+                                "Category: %s\n" +
+                                "Amount: %.2f %s\n" +
+                                "Conference: %s\n" +
+                                "Payment Type: %s\n\n" +
+                                "Please process the payment to complete registration.",
+                                req.getTitle(), req.getName(), req.getEmail(), req.getPhone(),
+                                req.getCountry(), req.getOrg(), req.getCategory(),
+                                req.getAmount(), req.getCurrency() != null ? req.getCurrency().toUpperCase() : "EUR",
+                                req.getConf(), "stripe"
+                            );
+                            mailService.sendEmail(loginEmail, subject, body);
+                            log.info("Registration attempt notification email sent to: {}", loginEmail);
                         } else {
                             log.warn("No login email found for user: {}", req.getUser());
                         }
@@ -199,8 +219,28 @@ public class PaymentController {
                     try {
                         String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
                         if (loginEmail != null) {
-                            mailService.sendEmail(loginEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
-                            log.info("Registration confirmation email sent to: {}", loginEmail);
+                            String subject = "Registration Attempt Notification";
+                            String body = String.format(
+                                "Someone is trying to register for the conference.\n\n" +
+                                "Details:\n" +
+                                "Title: %s\n" +
+                                "Name: %s\n" +
+                                "Email: %s\n" +
+                                "Phone: %s\n" +
+                                "Country: %s\n" +
+                                "Organization: %s\n" +
+                                "Category: %s\n" +
+                                "Amount: %.2f %s\n" +
+                                "Conference: %s\n" +
+                                "Payment Type: %s\n\n" +
+                                "Please process the payment to complete registration.",
+                                req.getTitle(), req.getName(), req.getEmail(), req.getPhone(),
+                                req.getCountry(), req.getOrg(), req.getCategory(),
+                                req.getAmount(), req.getCurrency() != null ? req.getCurrency().toUpperCase() : "EUR",
+                                req.getConf(), "paypal"
+                            );
+                            mailService.sendEmail(loginEmail, subject, body);
+                            log.info("Registration attempt notification email sent to: {}", loginEmail);
                         } else {
                             log.warn("No login email found for user: {}", req.getUser());
                         }
@@ -234,7 +274,8 @@ public class PaymentController {
     @PostMapping("/stripe/success")
     public ResponseEntity<?> confirmStripePayment(@RequestBody Map<String, String> body) {
         String sessionId = body.get("token");
-        log.info("Received Stripe payment confirmation for sessionId: {}", sessionId);
+        String username = body.get("username");
+        log.info("Received Stripe payment confirmation for sessionId: {}, username: {}", sessionId, username);
 
         if (sessionId == null) {
             log.warn("Session ID is required for Stripe payment confirmation");
@@ -252,7 +293,9 @@ public class PaymentController {
                         t_id, sessionId);
                 log.info("Stripe payment confirmed. Update count: {} for sessionId: {}", updated, sessionId);
                 if (updated > 0) {
-                    return ResponseEntity.ok(Map.of("status", "success"));
+                    // Send success email
+                    sendSuccessEmail(username, sessionId, "stripe");
+                    return ResponseEntity.ok(Map.of("status", "success", "username", username));
                 } else {
                     log.warn("No registration row updated for token={}, payment_type=stripe", sessionId);
                     return ResponseEntity.status(404).body(Map.of("error", "No registration found to update"));
@@ -274,7 +317,8 @@ public class PaymentController {
     public ResponseEntity<?> confirmPaypalPayment(@RequestBody Map<String, String> body) {
         String paymentId = body.get("token");
         String payerId = body.get("payerId");
-        log.info("Received PayPal payment confirmation for paymentId: {}, payerId: {}", paymentId, payerId);
+        String username = body.get("username");
+        log.info("Received PayPal payment confirmation for paymentId: {}, payerId: {}, username: {}", paymentId, payerId, username);
 
         if (paymentId == null) {
             log.warn("paymentId is required for PayPal payment confirmation");
@@ -300,7 +344,9 @@ public class PaymentController {
                         t_id, paymentId);
                 log.info("PayPal payment confirmed. Update count: {} for paymentId: {}", updated, paymentId);
                 if (updated > 0) {
-                    return ResponseEntity.ok(Map.of("status", "success"));
+                    // Send success email
+                    sendSuccessEmail(username, paymentId, "paypal");
+                    return ResponseEntity.ok(Map.of("status", "success", "username", username));
                 } else {
                     log.warn("No registration row updated for token={}, payment_type=paypal", paymentId);
                     return ResponseEntity.status(404).body(Map.of("error", "No registration found to update"));
@@ -332,6 +378,50 @@ public class PaymentController {
         } else {
             log.warn("No registration found for token: {}", token);
             return ResponseEntity.status(404).body(Map.of("error", "Registration not found"));
+        }
+    }
+
+    private void sendSuccessEmail(String username, String token, String paymentType) {
+        if (username == null) {
+            log.warn("Username is null, cannot send success email");
+            return;
+        }
+        try {
+            String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, username);
+            if (loginEmail != null) {
+                // Get registration details
+                Map<String, Object> reg = jdbcTemplate.queryForMap("SELECT * FROM registrations WHERE token = ? AND payment_type = ?", token, paymentType);
+                if (reg != null) {
+                    String subject = "Registration Successful";
+                    String body = String.format(
+                        "Your registration for the conference has been successfully completed.\n\n" +
+                        "Details:\n" +
+                        "Title: %s\n" +
+                        "Name: %s\n" +
+                        "Email: %s\n" +
+                        "Phone: %s\n" +
+                        "Country: %s\n" +
+                        "Organization: %s\n" +
+                        "Category: %s\n" +
+                        "Amount: %.2f %s\n" +
+                        "Conference: %s\n" +
+                        "Payment Type: %s\n" +
+                        "Invoice Number: %s\n\n" +
+                        "Thank you for registering!",
+                        reg.get("title"), reg.get("name"), reg.get("email"), reg.get("phone"),
+                        reg.get("country"), reg.get("org"), reg.get("category"),
+                        reg.get("price"), "EUR", reg.get("conf"), paymentType, reg.get("invoice_number")
+                    );
+                    mailService.sendEmail(loginEmail, subject, body);
+                    log.info("Registration success email sent to: {}", loginEmail);
+                } else {
+                    log.warn("No registration found for token: {}, payment_type: {}", token, paymentType);
+                }
+            } else {
+                log.warn("No login email found for username: {}", username);
+            }
+        } catch (Exception e) {
+            log.error("Error sending success email for username: {}", username, e);
         }
     }
 }
