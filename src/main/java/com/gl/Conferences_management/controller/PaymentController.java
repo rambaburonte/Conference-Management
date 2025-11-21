@@ -109,24 +109,21 @@ public class PaymentController {
             
             // Send email
             try {
-                String toEmail = req.getEmail(); // default to submitted email
-                if (req.getUser() != null) {    
+                if (req.getUser() != null) {
                     try {
                         String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
                         if (loginEmail != null) {
-                            toEmail = loginEmail;
-                            log.info("Using login email for Stripe registration: {}", loginEmail);
+                            mailService.sendEmail(loginEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
+                            log.info("Registration confirmation email sent to: {}", loginEmail);
                         } else {
-                            log.warn("No login email found for user: {}, using submitted email: {}", req.getUser(), req.getEmail());
+                            log.warn("No login email found for user: {}", req.getUser());
                         }
                     } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
-                        log.warn("No login email found for user: {}, using submitted email: {}", req.getUser(), req.getEmail());
+                        log.warn("No login email found for user: {}", req.getUser());
                     }
                 }
-                mailService.sendEmail(toEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
-                log.info("Stripe registration confirmation email sent to: {}", toEmail);
             } catch (Exception e) {
-                log.error("Error sending Stripe registration email for user: {}", req.getUser(), e);
+                log.error("Error sending registration email for user: {}", req.getUser(), e);
             }
 
             Map<String, Object> resp = new HashMap<>();
@@ -198,20 +195,21 @@ public class PaymentController {
             
             // Send email
             try {
-                String toEmail = req.getEmail(); // default to submitted email
                 if (req.getUser() != null) {
-                    String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
-                    if (loginEmail != null) {
-                        toEmail = loginEmail;
-                        log.info("Using login email for PayPal registration: {}", loginEmail);
-                    } else {
-                        log.warn("No login email found for user: {}, using submitted email: {}", req.getUser(), req.getEmail());
+                    try {
+                        String loginEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, req.getUser());
+                        if (loginEmail != null) {
+                            mailService.sendEmail(loginEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
+                            log.info("Registration confirmation email sent to: {}", loginEmail);
+                        } else {
+                            log.warn("No login email found for user: {}", req.getUser());
+                        }
+                    } catch (org.springframework.dao.EmptyResultDataAccessException ex) {
+                        log.warn("No login email found for user: {}", req.getUser());
                     }
                 }
-                mailService.sendEmail(toEmail, "Registration Confirmation", "Thank you for registering for the conference. Your payment is being processed.");
-                log.info("PayPal registration confirmation email sent to: {}", toEmail);
             } catch (Exception e) {
-                log.error("Error sending PayPal registration email for user: {}", req.getUser(), e);
+                log.error("Error sending registration email for user: {}", req.getUser(), e);
             }
 
             Map<String, Object> resp = new HashMap<>();
