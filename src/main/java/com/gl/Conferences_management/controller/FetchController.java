@@ -347,7 +347,8 @@ public class FetchController {
     public List<Map<String, Object>> getMembers() {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
         String tableName = camelToSnake(methodName.substring(3));
-        return jdbcTemplate.queryForList("SELECT * FROM " + tableName);
+        String sql = "SELECT * FROM " + tableName + " ORDER BY recordListingID ASC";
+        return jdbcTemplate.queryForList(sql);
     }
 
     @GetMapping("/members/user/{user}")
