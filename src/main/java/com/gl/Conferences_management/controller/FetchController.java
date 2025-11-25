@@ -361,7 +361,7 @@ public class FetchController {
                 return List.of();
             }
             log.debug("Found user id: {} for username: {}", userId, user);
-            String sql = "SELECT * FROM members WHERE user = ?";
+            String sql = "SELECT * FROM members WHERE user = ? ORDER BY recordListingID ASC";
             List<Map<String, Object>> result = jdbcTemplate.queryForList(sql, userId);
             // Add base URL to photo field
             for (Map<String, Object> member : result) {
