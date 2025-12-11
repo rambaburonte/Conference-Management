@@ -318,7 +318,16 @@ public class FetchController {
     @GetMapping("/members")
     public List<Map<String, Object>> getMembers() {
         String tableName = camelToSnake("getMembers".substring(3));
-        String sql = "SELECT * FROM " + tableName + " ORDER BY recordListingID ASC";
+        String sql = "SELECT * FROM " + tableName + " ORDER BY " +
+            "CASE " +
+            "WHEN category = 'Plenary' THEN 1 " +
+            "WHEN category = 'Keynote' THEN 2 " +
+            "WHEN category = 'Invited' THEN 3 " +
+            "WHEN category = 'Yrf' THEN 4 " +
+            "WHEN category = 'Poster' THEN 5 " +
+            "ELSE 6 " +
+            "END ASC, " +
+            "recordListingID ASC";
         return databaseService.executeQuery(sql);
     }
 
