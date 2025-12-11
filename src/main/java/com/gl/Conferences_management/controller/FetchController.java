@@ -341,7 +341,16 @@ public class FetchController {
                 return List.of();
             }
             log.debug("Found user id: {} for username: {}", userId, user);
-            String sql = "SELECT * FROM members WHERE user = ? ORDER BY recordListingID ASC";
+            String sql = "SELECT * FROM members WHERE user = ? ORDER BY " +
+                "CASE " +
+                "WHEN category = 'Plenary' THEN 1 " +
+                "WHEN category = 'Keynote' THEN 2 " +
+                "WHEN category = 'Invited' THEN 3 " +
+                "WHEN category = 'Yrf' THEN 4 " +
+                "WHEN category = 'Poster' THEN 5 " +
+                "ELSE 6 " +
+                "END ASC, " +
+                "recordListingID ASC";
             List<Map<String, Object>> result = databaseService.executeQuery(sql, userId);
             // Add base URL to photo field
             for (Map<String, Object> member : result) {
