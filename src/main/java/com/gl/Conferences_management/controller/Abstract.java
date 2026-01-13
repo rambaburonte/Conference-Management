@@ -119,6 +119,7 @@ public class Abstract {
                         String userEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, request.getUser());
                         if (userEmail != null) {
                             String subject = "New Abstract Submission";
+                            String abstractFileUrl = "https://ccai2026.com/cms/pdfs/" + uniqueFileName;
                             String body = String.format(
                                 "Someone has submitted an abstract.\n\n" +
                                 "Submission Details:\n" +
@@ -135,11 +136,12 @@ public class Abstract {
                                 "Paper Title: %s\n" +
                                 "Date: %s\n" +
                                 "IP Address: %s\n\n" +
+                                "Abstract File: %s\n\n" +
                                 "Please review the submission.",
                                 id, request.getTitle(), request.getFname(), request.getEmail(),
                                 request.getCountry(), request.getOrg(), request.getPhno(),
                                 request.getCategory(), request.getTrackName(), request.getAddress(),
-                                request.getPresentationTitle(), LocalDate.now(), ipAddress
+                                request.getPresentationTitle(), LocalDate.now(), ipAddress, abstractFileUrl
                             );
                             mailService.sendEmail(userEmail, subject, body);
                             log.info("Abstract submission confirmation email sent to: {}", userEmail);
