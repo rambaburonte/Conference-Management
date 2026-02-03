@@ -75,6 +75,11 @@ public class FetchController {
         String tableName = camelToSnake("getCallforabstracts".substring(3));
         return databaseService.executeQuery("SELECT * FROM " + tableName);
     }
+    @GetMapping("/call-for-abstracts/user/{user}")
+    public List<Map<String, Object>> getCallforabstractsByUser(@PathVariable String user) {
+        String tableName = camelToSnake("getCallforabstracts".substring(3));
+        return databaseService.executeQuery("SELECT * FROM " + tableName + " WHERE user = '" + user + "'");
+    }
 
     @GetMapping("/cfa-categories")
     public List<Map<String, Object>> getCfaCategories() {
