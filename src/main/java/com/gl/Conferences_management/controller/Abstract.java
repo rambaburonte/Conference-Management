@@ -53,6 +53,14 @@ public class Abstract {
 
     @Value("${ftp.upload.path:/cms/pdfs}")
     private String ftpUploadPath;
+      @Value("${ftp.connection-timeout:30000}")
+    private int ftpConnectionTimeout;
+
+    @Value("${ftp.data-timeout:30000}")
+    private int ftpDataTimeout;
+
+    @Value("${ftp.passive-mode:true}")
+    private boolean ftpPassiveMode;
 
     @PostMapping(value = "/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AbstractSubmissionResponse> submitAbstract(
@@ -104,21 +112,63 @@ public class Abstract {
             Long id = keyHolder.getKey().longValue();
             log.info("Abstract inserted into database with ID: {}", id);
 
+            // Validate file before FTP upload
+            if (file.isEmpty()) {
+                log.error("Uploaded file is empty for ID: {}", id);
+                return ResponseEntity.status(400).body(new AbstractSubmissionResponse(null, "Uploaded file is empty", "error", null));
+            }
+
+            if (file.getSize() > 10 * 1024 * 1024) { // 10MB limit
+                log.error("File too large for ID: {}. Size: {} bytes", id, file.getSize());
+                return ResponseEntity.status(400).body(new AbstractSubmissionResponse(null, "File size exceeds 10MB limit", "error", null));
+            }
+
             // Generate unique file name with ID
             String originalFileName = file.getOriginalFilename();
             String uniqueFileName = id + "_" + originalFileName;
-            log.debug("Generated unique filename: {}", uniqueFileName);
+            log.info("File validation passed - Name: {}, Size: {} bytes, Unique name: {}", originalFileName, file.getSize(), uniqueFileName);
 
-            // FTP upload
-            log.info("Connecting to FTP server: {}", ftpHost);
+            // FTP upload with improved error handling
+            log.info("Connecting to FTP server: {}:{}", ftpHost, ftpPort);
+            ftpClient.setConnectTimeout(ftpConnectionTimeout);
+            ftpClient.setDefaultTimeout(ftpDataTimeout);
             ftpClient.connect(ftpHost, ftpPort);
-            ftpClient.login(ftpUsername, ftpPassword);
-            ftpClient.enterLocalPassiveMode();
+            log.info("FTP connection established, reply code: {}", ftpClient.getReplyCode());
+
+            boolean loginSuccess = ftpClient.login(ftpUsername, ftpPassword);
+            if (!loginSuccess) {
+                log.error("FTP login failed for user: {}. Reply code: {}", ftpUsername, ftpClient.getReplyCode());
+                throw new IOException("FTP login failed - check credentials");
+            }
+            log.info("FTP login successful");
+
+            if (ftpPassiveMode) {
+                ftpClient.enterLocalPassiveMode();
+            }
             ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
-            ftpClient.changeWorkingDirectory(ftpUploadPath);
+            ftpClient.setBufferSize(1024 * 1024); // 1MB buffer
+
+            log.info("Changing to FTP directory: {}", ftpUploadPath);
+            boolean dirChanged = ftpClient.changeWorkingDirectory(ftpUploadPath);
+            if (!dirChanged) {
+                log.warn("Failed to change to directory: {}. Attempting to create it...", ftpUploadPath);
+                // Try to create the directory
+                boolean dirCreated = ftpClient.makeDirectory(ftpUploadPath);
+                if (dirCreated) {
+                    log.info("Created FTP directory: {}", ftpUploadPath);
+                    dirChanged = ftpClient.changeWorkingDirectory(ftpUploadPath);
+                }
+                if (!dirChanged) {
+                    log.error("Failed to access FTP directory: {}. Current directory: {}", ftpUploadPath, ftpClient.printWorkingDirectory());
+                    throw new IOException("Failed to access FTP upload directory");
+                }
+            }
+            log.info("FTP directory changed successfully");
 
             try (InputStream inputStream = file.getInputStream()) {
+                log.info("Starting FTP upload for file: {} (size: {} bytes)", uniqueFileName, file.getSize());
                 boolean done = ftpClient.storeFile(uniqueFileName, inputStream);
+
                 if (done) {
                     log.info("File uploaded successfully to FTP: {}", uniqueFileName);
                     // Update attachment in database
@@ -166,13 +216,25 @@ public class Abstract {
                     log.info("Abstract submission successful for ID: {}", id);
                     return ResponseEntity.ok(new AbstractSubmissionResponse(id, "Abstract submitted successfully", "success", uniqueFileName));
                 } else {
-                    log.error("FTP file upload failed for ID: {}", id);
-                    return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, "File upload failed", "error", null));
+                    int replyCode = ftpClient.getReplyCode();
+                    String replyString = ftpClient.getReplyString();
+                    log.error("FTP file upload failed for ID: {}. Reply code: {}, Reply: {}", id, replyCode, replyString);
+                    log.error("FTP upload details - File: {}, Size: {}, Current dir: {}", uniqueFileName, file.getSize(), ftpClient.printWorkingDirectory());
+                    return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, "File upload failed - FTP error", "error", null));
                 }
             }
         } catch (Exception e) {
-            log.error("Error submitting abstract for user: {}", user, e);
-            return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, "Error: " + e.getMessage(), "error", null));
+            log.error("Error submitting abstract for user: {}. Error type: {}, Message: {}", user, e.getClass().getSimpleName(), e.getMessage(), e);
+
+            // Provide more specific error messages
+            String errorMessage = "Error: " + e.getMessage();
+            if (e.getMessage().contains("FTP") || e.getMessage().contains("ftp")) {
+                errorMessage = "File upload failed: " + e.getMessage();
+            } else if (e.getMessage().contains("database") || e.getMessage().contains("SQL")) {
+                errorMessage = "Database error occurred";
+            }
+
+            return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, errorMessage, "error", null));
         } finally {
             try {
                 if (ftpClient.isConnected()) {
