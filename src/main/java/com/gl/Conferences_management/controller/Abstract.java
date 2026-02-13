@@ -11,18 +11,17 @@ import org.apache.commons.net.ftp.FTP;
 import org.apache.commons.net.ftp.FTPClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.gl.Conferences_management.dto.AbstractSubmissionRequest;
 import com.gl.Conferences_management.dto.AbstractSubmissionResponse;
 import com.gl.Conferences_management.service.MailService;
 
@@ -55,13 +54,25 @@ public class Abstract {
     @Value("${ftp.upload.path:/cms/pdfs}")
     private String ftpUploadPath;
 
-    @PostMapping("/submit")
+    @PostMapping(value = "/submit", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AbstractSubmissionResponse> submitAbstract(
             @RequestParam("file") MultipartFile file,
-            @ModelAttribute AbstractSubmissionRequest request,
+            @RequestParam("user") String user,
+            @RequestParam("title") String title,
+            @RequestParam("fname") String fname,
+            @RequestParam("country") String country,
+            @RequestParam(value = "org", required = false) String org,
+            @RequestParam("email") String email,
+            @RequestParam("phno") String phno,
+            @RequestParam(value = "category", required = false) String category,
+            @RequestParam(value = "sentFrom", required = false) String sentFrom,
+            @RequestParam(value = "trackName", required = false) String trackName,
+            @RequestParam(value = "address", required = false) String address,
+            @RequestParam(value = "presentationTitle", required = false) String presentationTitle,
+            @RequestParam(value = "entity", required = false) String entity,
             HttpServletRequest httpRequest
     ) {
-        log.info("Received abstract submission request from user: {}, title: {}", request.getUser(), request.getTitle());
+        log.info("Received abstract submission request from user: {}, title: {}", user, title);
         FTPClient ftpClient = new FTPClient();
         try {
             String ipAddress = httpRequest.getRemoteAddr();
@@ -72,21 +83,21 @@ public class Abstract {
             KeyHolder keyHolder = new GeneratedKeyHolder();
             jdbcTemplate.update(connection -> {
                 PreparedStatement ps = connection.prepareStatement(insertSql, Statement.RETURN_GENERATED_KEYS);
-                ps.setString(1, request.getUser());
-                ps.setString(2, request.getTitle());
-                ps.setString(3, request.getFname());
-                ps.setString(4, request.getCountry());
-                ps.setString(5, request.getOrg());
-                ps.setString(6, request.getEmail());
-                ps.setString(7, request.getPhno());
-                ps.setString(8, request.getCategory());
-                ps.setString(9, request.getSentFrom());
-                ps.setString(10, request.getTrackName());
-                ps.setString(11, request.getAddress());
+                ps.setString(1, user);
+                ps.setString(2, title);
+                ps.setString(3, fname);
+                ps.setString(4, country);
+                ps.setString(5, org);
+                ps.setString(6, email);
+                ps.setString(7, phno);
+                ps.setString(8, category);
+                ps.setString(9, sentFrom);
+                ps.setString(10, trackName);
+                ps.setString(11, address);
                 ps.setDate(12, Date.valueOf(LocalDate.now()));
                 ps.setString(13, ipAddress);
-                ps.setString(14, request.getPresentationTitle());
-                ps.setString(15, request.getEntity());
+                ps.setString(14, presentationTitle);
+                ps.setString(15, entity);
                 return ps;
             }, keyHolder);
 
@@ -116,7 +127,7 @@ public class Abstract {
                     
                     // Send email
                     try {
-                        String userEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, request.getUser());
+                        String userEmail = jdbcTemplate.queryForObject("SELECT email FROM login_details WHERE username = ?", String.class, user);
                         if (userEmail != null) {
                             String subject = "New Abstract Submission";
                             String abstractFileUrl = "https://ccai2026.com/cms/pdfs/" + uniqueFileName;
@@ -138,18 +149,18 @@ public class Abstract {
                                 "IP Address: %s\n\n" +
                                 "Abstract File: %s\n\n" +
                                 "Please review the submission.",
-                                id, request.getTitle(), request.getFname(), request.getEmail(),
-                                request.getCountry(), request.getOrg(), request.getPhno(),
-                                request.getCategory(), request.getTrackName(), request.getAddress(),
-                                request.getPresentationTitle(), LocalDate.now(), ipAddress, abstractFileUrl
+                                id, title, fname, email,
+                                country, org, phno,
+                                category, trackName, address,
+                                presentationTitle, LocalDate.now(), ipAddress, abstractFileUrl
                             );
                             mailService.sendEmail(userEmail, subject, body);
                             log.info("Abstract submission confirmation email sent to: {}", userEmail);
                         } else {
-                            log.warn("No email found in login_details for user: {}", request.getUser());
+                            log.warn("No email found in login_details for user: {}", user);
                         }
                     } catch (Exception e) {
-                        log.error("Error sending abstract submission email for user: {}", request.getUser(), e);
+                        log.error("Error sending abstract submission email for user: {}", user, e);
                     }
                     
                     log.info("Abstract submission successful for ID: {}", id);
@@ -160,7 +171,7 @@ public class Abstract {
                 }
             }
         } catch (Exception e) {
-            log.error("Error submitting abstract for user: {}", request.getUser(), e);
+            log.error("Error submitting abstract for user: {}", user, e);
             return ResponseEntity.status(500).body(new AbstractSubmissionResponse(null, "Error: " + e.getMessage(), "error", null));
         } finally {
             try {
