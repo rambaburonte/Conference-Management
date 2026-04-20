@@ -595,10 +595,10 @@ public class FetchController {
         return databaseService.executeQuery("SELECT * FROM " + tableName);
     }
 
-    @GetMapping("/sub-tracks/user/{id}")
-    public List<Map<String, Object>> getSubTracksByUser(@PathVariable("id") Integer id) {
+    @GetMapping("/sub-tracks/user/{user}")
+    public List<Map<String, Object>> getSubTracksByUser(@PathVariable("user") String user) {
         String tableName = camelToSnake("getSubTracks".substring(3));
-        return databaseService.executeQuery("SELECT * FROM " + tableName + " WHERE user = '" + id + "'");
+        return databaseService.executeQuery("SELECT * FROM " + tableName + " WHERE user = '" + user + "'");
     }
 
     @GetMapping("/suggest-speaker")
