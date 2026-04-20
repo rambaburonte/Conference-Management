@@ -595,6 +595,12 @@ public class FetchController {
         return databaseService.executeQuery("SELECT * FROM " + tableName);
     }
 
+    @GetMapping("/sub-tracks/user/{id}")
+    public List<Map<String, Object>> getSubTracksByUser(@PathVariable("id") Integer id) {
+        String tableName = camelToSnake("getSubTracks".substring(3));
+        return databaseService.executeQuery("SELECT * FROM " + tableName + " WHERE user = '" + id + "'");
+    }
+
     @GetMapping("/suggest-speaker")
     public List<Map<String, Object>> getSuggestSpeaker() {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
@@ -628,6 +634,12 @@ public class FetchController {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
         String tableName = camelToSnake(methodName.substring(3));
         return databaseService.executeQuery("SELECT * FROM " + tableName);
+    }
+
+    @GetMapping("/tracks/user/{id}")
+    public List<Map<String, Object>> getTracksByUser(@PathVariable("id") Integer id) {
+        String tableName = camelToSnake("getTracks".substring(3));
+        return databaseService.executeQuery("SELECT * FROM " + tableName + " WHERE user = '" + id + "'");
     }
 
     @GetMapping("/track-speakers")
