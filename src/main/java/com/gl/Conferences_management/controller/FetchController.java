@@ -596,7 +596,7 @@ public class FetchController {
     }
 
     @GetMapping("/sub-tracks/user/{user}")
-    public List<Map<String, Object>> getSubTracksByUser(@PathVariable("user") String user) {
+    public List<Map<String, Object>> getSubTracksByUser(@PathVariable("user") Integer user) {
         String tableName = camelToSnake("getSubTracks".substring(3));
         return databaseService.executeQuery("SELECT * FROM " + tableName + " WHERE user = '" + user + "'");
     }
