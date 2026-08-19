@@ -451,7 +451,27 @@ public class FetchController {
     @GetMapping("/pdfs/id/{id}")
     public List<Map<String, Object>> getPdfsById(@PathVariable("id") Integer id) {
         
-        return databaseService.executeQuery("SELECT * FROM pdfs WHERE id = " + id);
+         List<Map<String, Object>> result = databaseService.executeQuery("SELECT * FROM pdfs WHERE id = " + id);
+         for (Map<String, Object> pdf : result) {
+             Object fileName = pdf.get("tentative_program");
+             Object fileName2 = pdf.get("Brochure");
+             Object fileName3 = pdf.get("abstract_book");
+             Object fileName4 = pdf.get("Sponsorship");
+             if (fileName != null && !fileName.toString().isEmpty()) {
+                 pdf.put("tentative_program", "https://rigelworld.com/cms/pdfs/" + fileName.toString());
+             }
+            if (fileName2 != null && !fileName2.toString().isEmpty()) {
+                    pdf.put("Brochure", "https://rigelworld.com/cms/pdfs/" + fileName2.toString());
+            }
+            if (fileName3 != null && !fileName3.toString().isEmpty()) {
+                    pdf.put("abstract_book", "https://rigelworld.com/cms/pdfs/" + fileName3.toString());
+            }
+            if (fileName4 != null && !fileName4.toString().isEmpty()) {
+                    pdf.put("Sponsorship", "https://rigelworld.com/cms/pdfs/" + fileName4.toString());
+            }
+
+         }
+         return result;
     }
 
     @GetMapping("/pending-works")
