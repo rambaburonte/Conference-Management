@@ -448,6 +448,12 @@ public class FetchController {
         return databaseService.executeQuery("SELECT * FROM " + tableName);
     }
 
+    @GetMapping("/pdfs/id/{id}")
+    public List<Map<String, Object>> getPdfsById(String id) {
+        
+        return databaseService.executeQuery("SELECT * FROM pdfs WHERE id = " + id);
+    }
+
     @GetMapping("/pending-works")
     public List<Map<String, Object>> getPendingWorks() {
         String methodName = new Object(){}.getClass().getEnclosingMethod().getName();
