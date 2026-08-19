@@ -449,7 +449,7 @@ public class FetchController {
     }
 
     @GetMapping("/pdfs/id/{id}")
-    public List<Map<String, Object>> getPdfsById(String id) {
+    public List<Map<String, Object>> getPdfsById(@PathVariable("id") Integer id) {
         
         return databaseService.executeQuery("SELECT * FROM pdfs WHERE id = " + id);
     }
